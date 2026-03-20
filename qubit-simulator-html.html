@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Superconducting Qubit Simulator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#030508;color:#8ab4d4;font-family:monospace}
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-track{background:#040810}
+  ::-webkit-scrollbar-thumb{background:#1e3a5f;border-radius:2px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+
+function blochStep(bx,by,bz,dt,T1,T2,omegaX,omegaY,omegaD){
+  const dbx=(-bx/T2)+omegaY*bz-omegaD*by;
+  const dby=(-by/T2)+omegaD*bx-omegaX*bz;
+  const dbz=(-(bz-(-1))/T1)+omegaX*by-omegaY*bx;
+  return[bx+dbx*dt,by+dby*dt,bz+dbz*dt];
+}
+const GATE_PULSES={
+  X:{omegaX:Math.PI,omegaY:0,duration:20},
+  Y:{omegaX:0,omegaY:Math.PI,duration:20},
+  H:{omegaX:Math.PI/Math.sqrt(2),omegaY:0,duration:20,detuning:Math.PI/Math.sqrt(2)},
+  "X/2":{omegaX:Math.PI/2,omegaY:0,duration:20},
+  "Y/2":{omegaX:0,omegaY:Math.PI/2,duration:20},
+  Z:{omegaX:0,omegaY:0,detuning:Math.PI,duration:20},
+};
+
+function BlochSphere({bx,by,bz,history}){
+  const cx=120,cy=120,r=90,phi=0.5;
+  const proj=(x,y,z)=>{
+    const xr=x*Math.cos(phi)+y*Math.sin(phi);
+    const yr=-x*Math.sin(phi)*0.5+y*Math.cos(phi)*0.5-z*0.866;
+    return[cx+xr*r,cy+yr*r];
+  };
+  const[px,py]=proj(bx,by,bz);
+  const histPts=history.slice(-60).map(([x,y,z])=>proj(x,y,z));
+  const mk=(n,fn)=>Array.from({length:n},(_,i)=>fn(i/(n-1)));
+  const equator=mk(37,t=>proj(Math.cos(t*2*Math.PI),Math.sin(t*2*Math.PI),0));
+  const meridX=mk(37,t=>proj(Math.cos(t*2*Math.PI),0,Math.sin(t*2*Math.PI)));
+  const meridY=mk(37,t=>proj(0,Math.cos(t*2*Math.PI),Math.sin(t*2*Math.PI)));
+  const p2p=pts=>pts.map((p,i)=>`${i===0?"M":"L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+  const pop0=((1+bz)/2*100).toFixed(1),pop1=((1-bz)/2*100).toFixed(1);
+  return(
+    <div style={{width:"100%",display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+      <svg viewBox="0 0 240 240" width="100%" style={{display:"block",maxWidth:240}}>
+        <defs>
+          <radialGradient id="sG" cx="40%" cy="35%"><stop offset="0%" stopColor="#1a2a3a"/><stop offset="100%" stopColor="#040810"/></radialGradient>
+          <filter id="gl"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <filter id="sg"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        </defs>
+        <circle cx={cx} cy={cy} r={r} fill="url(#sG)" stroke="#1e3a5f" strokeWidth="1.5" opacity="0.9"/>
+        <path d={p2p(equator)} fill="none" stroke="#1e3a5f" strokeWidth="0.8" strokeDasharray="3,3" opacity="0.6"/>
+        <path d={p2p(meridX)} fill="none" stroke="#1e3a5f" strokeWidth="0.8" strokeDasharray="3,3" opacity="0.6"/>
+        <path d={p2p(meridY)} fill="none" stroke="#1e3a5f" strokeWidth="0.8" strokeDasharray="3,3" opacity="0.4"/>
+        {[proj(0,0,1),proj(0,0,-1),proj(1,0,0),proj(0,1,0),proj(-1,0,0)].map(([ax,ay],i)=>(
+          <line key={i} x1={cx} y1={cy} x2={ax} y2={ay} stroke="#2a4060" strokeWidth="0.8" strokeDasharray="4,4"/>
+        ))}
+        {histPts.length>1&&<path d={p2p(histPts)} fill="none" stroke="#00d4ff" strokeWidth="1" opacity="0.35"/>}
+        <line x1={cx} y1={cy} x2={px} y2={py} stroke="#00ffaa" strokeWidth="2.5" filter="url(#gl)"/>
+        <circle cx={px} cy={py} r={5} fill="#00ffaa" filter="url(#sg)"/>
+        <circle cx={cx} cy={cy} r={3} fill="#fff" opacity="0.6"/>
+        {[{l:"+Z",p:proj(0,0,1),o:[-8,-10]},{l:"-Z",p:proj(0,0,-1),o:[-8,14]},{l:"+X",p:proj(1,0,0),o:[6,4]},{l:"+Y",p:proj(0,1,0),o:[6,4]}].map(({l,p,o},i)=>(
+          <text key={i} x={p[0]+o[0]} y={p[1]+o[1]} fill="#4a7fa5" fontSize="10" fontFamily="monospace">{l}</text>
+        ))}
+        <text x={cx-88} y={cy+r+20} fill="#7a9fc0" fontSize="9" fontFamily="monospace">|0⟩: {pop0}%  |1⟩: {pop1}%</text>
+        <text x={cx-88} y={cy+r+33} fill="#7a9fc0" fontSize="9" fontFamily="monospace">Bx:{bx.toFixed(2)} By:{by.toFixed(2)} Bz:{bz.toFixed(2)}</text>
+      </svg>
+    </div>
+  );
+}
+
+function CryoStack({signalActive,readoutActive}){
+  const stages=[
+    {label:"ROOM TEMP",temp:"300 K",color:"#ff4444",h:44,components:["AWG / DAC","IQ Mixer","LO Source"]},
+    {label:"4 K STAGE",temp:"4 K",color:"#ff8800",h:44,components:["HEMT Amp","20 dB Att."]},
+    {label:"STILL PLATE",temp:"800 mK",color:"#ffcc00",h:40,components:["10 dB Att."]},
+    {label:"COLD PLATE",temp:"100 mK",color:"#44ff88",h:40,components:["10 dB Att.","Bandpass"]},
+    {label:"MXC / BASE",temp:"10 mK",color:"#00ccff",h:56,components:["Qubit Chip","Circulator","TWPA","10 dB Att."]},
+  ];
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:0,width:"100%"}}>
+      {stages.map((s,i)=>(
+        <div key={i} style={{background:`linear-gradient(135deg,${s.color}08,${s.color}18)`,border:`1px solid ${s.color}44`,borderRadius:i===0?"8px 8px 0 0":i===stages.length-1?"0 0 8px 8px":"0",padding:"8px 10px",position:"relative",minHeight:s.h,overflow:"hidden"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div>
+              <div style={{color:s.color,fontSize:9,fontFamily:"monospace",fontWeight:700,letterSpacing:1}}>{s.label}</div>
+              <div style={{color:s.color,fontSize:8,fontFamily:"monospace",opacity:0.7}}>{s.temp}</div>
+            </div>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap",justifyContent:"flex-end",maxWidth:"65%"}}>
+              {s.components.map((c,j)=>(
+                <span key={j} style={{background:`${s.color}22`,border:`1px solid ${s.color}55`,color:s.color,fontSize:7,fontFamily:"monospace",padding:"1px 4px",borderRadius:3}}>{c}</span>
+              ))}
+            </div>
+          </div>
+          {(signalActive||readoutActive)&&(
+            <div style={{position:"absolute",left:"48%",top:0,bottom:0,width:2,background:signalActive?`linear-gradient(to bottom,${s.color}88,${s.color}22)`:`linear-gradient(to top,${s.color}88,${s.color}22)`,animation:"pulse 0.8s ease-in-out infinite"}}/>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DilutionFridge({signalActive,readoutActive}){
+  const W=620,H=460,cx=W/2;
+  const stages=[
+    {label:"300 K",y:38,r:290,color:"#ff4444",fill:"#ff222208"},
+    {label:"4 K",y:100,r:230,color:"#ff8800",fill:"#ff880008"},
+    {label:"800 mK",y:168,r:170,color:"#ffcc00",fill:"#ffcc0008"},
+    {label:"100 mK",y:236,r:118,color:"#44ff88",fill:"#44ff8808"},
+    {label:"10 mK",y:310,r:72,color:"#00ccff",fill:"#00ccff08"},
+  ];
+  const driveX=cx-54,readoutX=cx+54,fridgeBottom=420;
+  const components=[
+    {x:driveX,y:stages[1].y+4,label:"ATT",sub:"−20 dB",color:"#ff8800",side:"left",shape:"att"},
+    {x:driveX,y:stages[2].y+4,label:"ATT",sub:"−10 dB",color:"#ffcc00",side:"left",shape:"att"},
+    {x:driveX,y:stages[3].y+4,label:"ATT",sub:"−10 dB",color:"#44ff88",side:"left",shape:"att"},
+    {x:driveX,y:stages[4].y+4,label:"ATT",sub:"−10 dB",color:"#00ccff",side:"left",shape:"att"},
+    {x:readoutX,y:stages[4].y+4,label:"CIRC",sub:"isolator",color:"#00aaff",side:"right",shape:"circ"},
+    {x:readoutX,y:stages[4].y+28,label:"TWPA",sub:"+20 dB",color:"#8844ff",side:"right",shape:"amp"},
+    {x:readoutX,y:stages[1].y+4,label:"HEMT",sub:"+40 dB",color:"#aa55ff",side:"right",shape:"amp"},
+    {x:driveX,y:stages[4].y+28,label:"CIRC",sub:"input",color:"#00ddff",side:"left",shape:"circ"},
+  ];
+  const chipY=stages[4].y+60;
+  const driveTop=stages[0].y,driveBottom=chipY,readTop=stages[0].y+20,readBottom=chipY;
+  return(
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:"block",fontFamily:"monospace"}}>
+      <defs>
+        <radialGradient id="fBg" cx="50%" cy="30%"><stop offset="0%" stopColor="#0a1828"/><stop offset="100%" stopColor="#020508"/></radialGradient>
+        <filter id="cGl"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="chGl"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <marker id="ad" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ff8800" opacity="0.8"/></marker>
+        <marker id="au" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto"><path d="M6,0 L0,3 L6,6 Z" fill="#8844ff" opacity="0.8"/></marker>
+        <style>{`
+          @keyframes drivePulse{0%{transform:translateY(${driveTop}px);opacity:0}5%{opacity:1}95%{opacity:1}100%{transform:translateY(${driveBottom}px);opacity:0}}
+          @keyframes readPulse{0%{transform:translateY(${readBottom}px);opacity:0}5%{opacity:1}95%{opacity:1}100%{transform:translateY(${readTop}px);opacity:0}}
+          @keyframes chipPulse{0%,100%{opacity:0.5}50%{opacity:1}}
+          .drive-dot{animation:drivePulse 1.4s ease-in-out infinite}
+          .read-dot{animation:readPulse 1.4s ease-in-out 0.3s infinite}
+          .chip-pulse{animation:chipPulse 1.2s ease-in-out infinite}
+        `}</style>
+      </defs>
+      <rect width={W} height={H} fill="url(#fBg)"/>
+      <rect x={cx-298} y={22} width={596} height={H-30} rx={14} fill="none" stroke="#1a3050" strokeWidth="1.5" strokeDasharray="6,4" opacity="0.5"/>
+      <text x={cx-290} y={18} fill="#1a3050" fontSize="9" letterSpacing="1">VACUUM CAN</text>
+      {[...stages].reverse().map((s,ri)=>{
+        const i=stages.length-1-ri,topY=s.y-12,btmY=fridgeBottom-i*10,topR=s.r,btmR=s.r*0.55;
+        return(<g key={i}>
+          <line x1={cx-topR} y1={topY} x2={cx-btmR} y2={btmY} stroke={s.color} strokeWidth={i===stages.length-1?1:1.2} opacity="0.35"/>
+          <line x1={cx+topR} y1={topY} x2={cx+btmR} y2={btmY} stroke={s.color} strokeWidth={i===stages.length-1?1:1.2} opacity="0.35"/>
+          <line x1={cx-topR} y1={topY} x2={cx+topR} y2={topY} stroke={s.color} strokeWidth="2" opacity="0.7"/>
+          <text x={cx-topR-4} y={topY-4} fill={s.color} fontSize="9" textAnchor="end" fontWeight="700">{s.label}</text>
+          <polygon points={`${cx-topR},${topY} ${cx+topR},${topY} ${cx+btmR},${btmY} ${cx-btmR},${btmY}`} fill={s.fill}/>
+        </g>);
+      })}
+      <line x1={cx} y1={stages[0].y} x2={cx} y2={fridgeBottom-5} stroke="#1a3050" strokeWidth="3"/>
+      <line x1={driveX} y1={stages[0].y-22} x2={driveX} y2={chipY+2} stroke="#ff6600" strokeWidth="2" opacity="0.55"/>
+      <text x={driveX} y={stages[0].y-26} fill="#ff6600" fontSize="8" textAnchor="middle">DRIVE</text>
+      <line x1={driveX} y1={stages[0].y-18} x2={driveX} y2={stages[0].y-6} stroke="#ff6600" strokeWidth="1.5" markerEnd="url(#ad)"/>
+      <line x1={readoutX} y1={stages[0].y-22} x2={readoutX} y2={chipY+2} stroke="#8844ff" strokeWidth="2" opacity="0.55"/>
+      <text x={readoutX} y={stages[0].y-26} fill="#8844ff" fontSize="8" textAnchor="middle">READOUT</text>
+      <line x1={readoutX} y1={stages[0].y-6} x2={readoutX} y2={stages[0].y-18} stroke="#8844ff" strokeWidth="1.5" markerEnd="url(#au)"/>
+      {[{x:driveX-54,y:4,w:44,label:"AWG",sub:"2.5 GSa/s",color:"#ff6b35"},{x:cx-20,y:4,w:40,label:"LO",sub:"5–8 GHz",color:"#ff9944"},{x:readoutX+12,y:4,w:44,label:"ADC",sub:"demod",color:"#ff6b35"}].map(({x,y,w,label,sub,color})=>(
+        <g key={label}>
+          <rect x={x} y={y} width={w} height={22} rx="3" fill={`${color}18`} stroke={color} strokeWidth="1.2"/>
+          <text x={x+w/2} y={y+9} fill={color} fontSize="8" textAnchor="middle" fontWeight="700">{label}</text>
+          <text x={x+w/2} y={y+18} fill={color} fontSize="6.5" textAnchor="middle" opacity="0.7">{sub}</text>
+        </g>
+      ))}
+      <circle cx={driveX} cy={stages[0].y-6} r="9" fill="#ff660018" stroke="#ff6600" strokeWidth="1.2"/>
+      <line x1={driveX-6} y1={stages[0].y-12} x2={driveX+6} y2={stages[0].y} stroke="#ff6600" strokeWidth="1"/>
+      <line x1={driveX+6} y1={stages[0].y-12} x2={driveX-6} y2={stages[0].y} stroke="#ff6600" strokeWidth="1"/>
+      <text x={driveX+12} y={stages[0].y-3} fill="#ff9944" fontSize="7">IQ MIX</text>
+      {stages.map((s,i)=>(
+        <g key={`int-${i}`}>
+          <circle cx={driveX} cy={s.y} r="3.5" fill={s.color} opacity="0.6"/>
+          <circle cx={readoutX} cy={s.y} r="3.5" fill={s.color} opacity="0.6"/>
+        </g>
+      ))}
+      {components.map((c,i)=>{
+        const isLeft=c.side==="left",bx2=isLeft?c.x-52:c.x+8,by2=c.y-10,bw=44,bh=20;
+        const connX1=isLeft?c.x-4:c.x+4,connX2=isLeft?bx2+bw:bx2;
+        const shapes={
+          att:()=><><rect x={bx2} y={by2} width={bw} height={bh} rx="2" fill={`${c.color}18`} stroke={c.color} strokeWidth="1.2"/><text x={bx2+bw/2} y={by2+8} fill={c.color} fontSize="7.5" textAnchor="middle" fontWeight="700">{c.label}</text><text x={bx2+bw/2} y={by2+17} fill={c.color} fontSize="6.5" textAnchor="middle" opacity="0.7">{c.sub}</text></>,
+          circ:()=><><circle cx={bx2+bw/2} cy={by2+bh/2} r={bh/2+1} fill={`${c.color}18`} stroke={c.color} strokeWidth="1.2"/><text x={bx2+bw/2} y={by2+8} fill={c.color} fontSize="7.5" textAnchor="middle" fontWeight="700">{c.label}</text><text x={bx2+bw/2} y={by2+17} fill={c.color} fontSize="6.5" textAnchor="middle" opacity="0.7">{c.sub}</text></>,
+          amp:()=>{const pts=isLeft?`${bx2},${by2} ${bx2+bw},${by2+bh/2} ${bx2},${by2+bh}`:`${bx2+bw},${by2} ${bx2},${by2+bh/2} ${bx2+bw},${by2+bh}`;return (<><polygon points={pts} fill={`${c.color}18`} stroke={c.color} strokeWidth="1.2"/><text x={bx2+bw/2} y={by2+8} fill={c.color} fontSize="7.5" textAnchor="middle" fontWeight="700">{c.label}</text><text x={bx2+bw/2} y={by2+17} fill={c.color} fontSize="6.5" textAnchor="middle" opacity="0.7">{c.sub}</text></>);},
+        };
+        return(<g key={i} filter="url(#cGl)"><line x1={connX1} y1={c.y} x2={connX2} y2={by2+bh/2} stroke={c.color} strokeWidth="1" opacity="0.5" strokeDasharray="2,2"/>{shapes[c.shape]?.()}</g>);
+      })}
+      <g filter="url(#chGl)">
+        <rect x={cx-32} y={chipY-14} width={64} height={28} rx="5" fill="#00ffaa18" stroke="#00ffaa" strokeWidth="2"/>
+        <line x1={cx-14} y1={chipY} x2={cx+14} y2={chipY} stroke="#00ffaa" strokeWidth="1.5"/>
+        <rect x={cx-6} y={chipY-5} width={12} height={10} rx="1" fill="#00ffaa33" stroke="#00ffaa" strokeWidth="1"/>
+        <line x1={cx-4} y1={chipY-3} x2={cx+4} y2={chipY+3} stroke="#00ffaa" strokeWidth="0.8"/>
+        <line x1={cx+4} y1={chipY-3} x2={cx-4} y2={chipY+3} stroke="#00ffaa" strokeWidth="0.8"/>
+        <line x1={driveX} y1={chipY+2} x2={cx-32} y2={chipY} stroke="#ff6600" strokeWidth="1.5" opacity="0.6"/>
+        <line x1={readoutX} y1={chipY+2} x2={cx+32} y2={chipY} stroke="#8844ff" strokeWidth="1.5" opacity="0.6"/>
+        <text x={cx} y={chipY-17} fill="#00ffaa" fontSize="8" textAnchor="middle" fontWeight="700" letterSpacing="1">TRANSMON QUBIT</text>
+        <text x={cx} y={chipY+22} fill="#00ffaa" fontSize="7" textAnchor="middle" opacity="0.7">Al/AlOx/Al · 10 mK</text>
+        <circle cx={cx} cy={chipY} r="5" fill="#00ffaa" opacity="0.6" className={readoutActive?"chip-pulse":""}/>
+      </g>
+      {signalActive&&<circle cx={driveX} cy={0} r="5" fill="#ffaa44" opacity="0.9" className="drive-dot" filter="url(#cGl)"/>}
+      {readoutActive&&<circle cx={readoutX} cy={0} r="5" fill="#bb77ff" opacity="0.9" className="read-dot" filter="url(#cGl)"/>}
+      <g transform={`translate(${W-112},${H-78})`}>
+        <rect x="0" y="0" width="106" height="72" rx="4" fill="#02060f" stroke="#1a3050" strokeWidth="1"/>
+        {[{color:"#ff6600",label:"Drive line (↓)"},{color:"#8844ff",label:"Readout (↑)"},{color:"#ffaa00",label:"Attenuator"},{color:"#00aaff",label:"Circulator"},{color:"#8844ff",label:"Amplifier"}].map(({color,label},i)=>(
+          <g key={i} transform={`translate(6,${8+i*13})`}>
+            <rect x="0" y="1" width="10" height="7" rx="1" fill={`${color}33`} stroke={color} strokeWidth="1"/>
+            <text x="14" y="9" fill={color} fontSize="7.5">{label}</text>
+          </g>
+        ))}
+      </g>
+    </svg>
+  );
+}
+
+function ChipLayout({bz,isRunning,qubitFreq,readoutFreq,couplingG,anharmonicity}){
+  const Ej=(qubitFreq*1.2).toFixed(2),Ec=(Math.abs(anharmonicity)/1000).toFixed(3);
+  const EjEc=(Ej/Ec).toFixed(0),chi=((couplingG**2)/Math.abs((qubitFreq-readoutFreq)*1000)).toFixed(2);
+  const W=560,H=310,qx=280,qy=155,resY=52,driveY=220,excited=(1-bz)/2;
+  const fingers=Array.from({length:5},(_,i)=>i);
+  const meander=(()=>{const segs=[],x0=60,y0=resY,segW=56,segH=36,n=7;for(let i=0;i<n;i++){const x=x0+i*segW,dir=i%2===0?1:-1;segs.push(`${i===0?"M":"L"}${x},${y0}`);segs.push(`L${x},${y0+dir*segH}`);segs.push(`L${x+segW},${y0+dir*segH}`);}segs.push(`L${x0+n*segW},${y0}`);return segs.join(" ");})();
+  return(
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:"block"}}>
+      <defs>
+        <radialGradient id="subG" cx="50%" cy="50%"><stop offset="0%" stopColor="#0c1a2e"/><stop offset="100%" stopColor="#060d18"/></radialGradient>
+        <filter id="jjG"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="rG"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <pattern id="gp" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#0a1520"/><line x1="0" y1="0" x2="8" y2="8" stroke="#0e2035" strokeWidth="0.5"/></pattern>
+        <style>{`@keyframes jjF{0%,100%{opacity:0.85}30%{opacity:1}60%{opacity:0.7}}@keyframes pFlow{0%{stroke-dashoffset:60}100%{stroke-dashoffset:0}}@keyframes eG{0%,100%{opacity:0.3}50%{opacity:0.7}}.jj-active{animation:jjF 0.6s ease-in-out infinite}.photon-flow{stroke-dasharray:6,4;animation:pFlow 1s linear infinite}.excited-halo{animation:eG 1s ease-in-out infinite}`}</style>
+      </defs>
+      <rect width={W} height={H} fill="url(#subG)" rx="6"/>
+      <rect width={W} height={H} fill="url(#gp)" rx="6" opacity="0.7"/>
+      <rect x="12" y="10" width={W-24} height={H-20} rx="5" fill="none" stroke="#1a3050" strokeWidth="1.5" strokeDasharray="4,3"/>
+      <text x="18" y="22" fill="#1a3050" fontSize="8">Si / Sapphire SUBSTRATE · 430 μm</text>
+      <text x={W-18} y="22" fill="#1a3050" fontSize="8" textAnchor="end">Al CPW · 200 nm</text>
+      <rect x="50" y={resY-14} width={W-100} height={66} fill="#040c16" stroke="#1a3050" strokeWidth="0.5" rx="3"/>
+      <path d={meander} fill="none" stroke="#00aaff" strokeWidth="5" opacity="0.15"/>
+      <path d={meander} fill="none" stroke="#00aaff" strokeWidth="2.5" filter="url(#rG)" className={isRunning?"photon-flow":""} strokeDasharray={isRunning?"6,4":"none"}/>
+      <text x="58" y={resY-4} fill="#00aaff" fontSize="8" fontWeight="700">λ/4 READOUT RESONATOR · {readoutFreq} GHz</text>
+      <circle cx="60" cy={resY} r="4" fill="#00aaff" opacity="0.8"/>
+      <line x1="60" y1={resY} x2="60" y2="10" stroke="#00aaff" strokeWidth="1.5" opacity="0.5" strokeDasharray="3,3"/>
+      <circle cx={W-80} cy={resY} r="4" fill="#00aaff" opacity="0.6"/>
+      <line x1={qx} y1={resY+52} x2={qx} y2={qy-52} stroke="#44ddff" strokeWidth="1.5" opacity="0.6" strokeDasharray="3,2"/>
+      <line x1={qx-10} y1={qy-46} x2={qx+10} y2={qy-46} stroke="#44ddff" strokeWidth="2.5"/>
+      <line x1={qx-10} y1={qy-40} x2={qx+10} y2={qy-40} stroke="#44ddff" strokeWidth="2.5"/>
+      <text x={qx+14} y={qy-41} fill="#44ddff" fontSize="7.5">C_c = {(couplingG/40).toFixed(1)} fF</text>
+      <rect x={qx-44} y={qy-38} width={88} height={30} rx="3" fill="#00ffaa18" stroke="#00ffaa" strokeWidth="1.8"/>
+      {fingers.map(i=><rect key={`ft${i}`} x={qx-36+i*17} y={qy-36} width={7} height={18} fill="#00ffaa44" stroke="#00ffaa" strokeWidth="0.6" rx="1"/>)}
+      <rect x={qx-44} y={qy+8} width={88} height={30} rx="3" fill="#00ffaa18" stroke="#00ffaa" strokeWidth="1.8"/>
+      {fingers.map(i=><rect key={`fb${i}`} x={qx-28+i*17} y={qy+10} width={7} height={18} fill="#00ffaa44" stroke="#00ffaa" strokeWidth="0.6" rx="1"/>)}
+      <text x={qx-48} y={qy+50} fill="#00ffaa" fontSize="7.5">C_Σ ≈ {(Math.abs(anharmonicity)/1000*75).toFixed(0)} fF</text>
+      {excited>0.3&&<circle cx={qx} cy={qy} r="26" fill="none" stroke="#ffaa00" strokeWidth="2" opacity={excited*0.8} className="excited-halo"/>}
+      <rect x={qx-11} y={qy-8} width={22} height={16} fill="none" stroke="#ffdd00" strokeWidth="1.5" rx="1"/>
+      {[-1,1].map(side=>{const jx=qx+side*6;return(<g key={side} className={isRunning?"jj-active":""} filter="url(#jjG)"><rect x={jx-4} y={qy-4} width={8} height={8} fill="#ffdd0033" stroke="#ffdd00" strokeWidth="1.2"/><line x1={jx-3} y1={qy-3} x2={jx+3} y2={qy+3} stroke="#ffdd00" strokeWidth="1"/><line x1={jx+3} y1={qy-3} x2={jx-3} y2={qy+3} stroke="#ffdd00" strokeWidth="1"/></g>);})}
+      <text x={qx} y={driveY+16} fill="#ffdd00" fontSize="7.5" textAnchor="middle">SQUID (2× JJ)</text>
+      <text x={qx} y={driveY+27} fill="#ffdd00" fontSize="6.5" textAnchor="middle" opacity="0.7">E_J/h = {Ej} GHz · E_C/h = {Ec} GHz</text>
+      <text x={qx} y={driveY+37} fill="#ffdd00" fontSize="6.5" textAnchor="middle" opacity="0.7">E_J/E_C = {EjEc}</text>
+      <rect x="18" y={driveY-12} width={W-36} height={24} fill="#040c16" stroke="#1a3050" strokeWidth="0.5" rx="2" opacity="0.8"/>
+      <line x1="18" y1={driveY} x2={W-18} y2={driveY} stroke="#ff6600" strokeWidth="2.5" opacity="0.25"/>
+      <line x1="18" y1={driveY} x2={W-18} y2={driveY} stroke="#ff6600" strokeWidth="1.2" filter="url(#rG)" className={isRunning?"photon-flow":""} strokeDasharray={isRunning?"6,4":"none"} opacity="0.7"/>
+      <text x="24" y={driveY-3} fill="#ff6600" fontSize="7.5" fontWeight="700">DRIVE LINE (XY CONTROL)</text>
+      <line x1={qx+100} y1="10" x2={qx+100} y2={H-10} stroke="#aa44ff" strokeWidth="1.5" opacity="0.4" strokeDasharray="4,3"/>
+      <text x={qx+103} y="22" fill="#aa44ff" fontSize="7.5" fontWeight="700">FLUX LINE (Z)</text>
+      <text x="24" y={H-12} fill="#2a5a8a" fontSize="7.5">TRANSMON QUBIT · ω₁₀/2π = {qubitFreq} GHz · α/2π = {anharmonicity} MHz · χ/2π = {chi} MHz</text>
+      <circle cx={W-24} cy={H-24} r="8" fill={excited>0.5?"#ffaa0066":"#00ffaa33"} stroke={excited>0.5?"#ffaa00":"#00ffaa"} strokeWidth="1.5"/>
+      <text x={W-24} y={H-21} fill={excited>0.5?"#ffaa00":"#00ffaa"} fontSize="7" textAnchor="middle" fontWeight="700">{excited>0.5?"|1⟩":"|0⟩"}</text>
+    </svg>
+  );
+}
+
+function CircuitDiagram({qubitFreq,readoutFreq,couplingG,anharmonicity}){
+  const Ej=(qubitFreq*1.2).toFixed(2),Ec=(Math.abs(anharmonicity)/1000).toFixed(3);
+  const chi=((couplingG**2)/Math.abs((qubitFreq-readoutFreq)*1000)).toFixed(2);
+  const W=635,H=415;
+  const qBusY=165,gBusY=285,midY=225;
+  const dx=90,qL=218,qR=258,qcx=(218+258)/2;
+  const rL=465,rR=510,rcx=(465+510)/2;
+  const ccX=358,fY=348;
+  const vsY=64,rY=106,cdY=144,gndTopY=42;
+
+  const Cap=({x,y,color})=>(
+    <g><line x1={x} y1={y-18} x2={x} y2={y-5} stroke={color} strokeWidth="1.5"/><line x1={x-11} y1={y-5} x2={x+11} y2={y-5} stroke={color} strokeWidth="2.5"/><line x1={x-11} y1={y+5} x2={x+11} y2={y+5} stroke={color} strokeWidth="2.5"/><line x1={x} y1={y+5} x2={x} y2={y+18} stroke={color} strokeWidth="1.5"/></g>
+  );
+  const HCap=({x,y,label,sublabel,color})=>(
+    <g><line x1={x-18} y1={y} x2={x-5} y2={y} stroke={color} strokeWidth="1.5"/><line x1={x-5} y1={y-11} x2={x-5} y2={y+11} stroke={color} strokeWidth="2.5"/><line x1={x+5} y1={y-11} x2={x+5} y2={y+11} stroke={color} strokeWidth="2.5"/><line x1={x+5} y1={y} x2={x+18} y2={y} stroke={color} strokeWidth="1.5"/>{label&&<text x={x} y={y-16} fill={color} fontSize="8" textAnchor="middle">{label}</text>}{sublabel&&<text x={x} y={y-6} fill={color} fontSize="7" textAnchor="middle">{sublabel}</text>}</g>
+  );
+  const JJ=({x,y,color})=>(
+    <g><line x1={x} y1={y-20} x2={x} y2={y-8} stroke={color} strokeWidth="1.5"/><rect x={x-8} y={y-8} width={16} height={16} fill={`${color}22`} stroke={color} strokeWidth="1.5"/><line x1={x-5} y1={y-5} x2={x+5} y2={y+5} stroke={color} strokeWidth="1.2"/><line x1={x+5} y1={y-5} x2={x-5} y2={y+5} stroke={color} strokeWidth="1.2"/><line x1={x} y1={y+8} x2={x} y2={y+20} stroke={color} strokeWidth="1.5"/></g>
+  );
+  const Inductor=({x,y,label,color})=>(
+    <g><line x1={x} y1={y-23} x2={x} y2={y-15} stroke={color} strokeWidth="1.5"/><path d={`M${x},${y-15} a5,5 0 0,1 0,10 a5,5 0 0,1 0,10 a5,5 0 0,1 0,10`} fill="none" stroke={color} strokeWidth="1.5"/><line x1={x} y1={y+15} x2={x} y2={y+23} stroke={color} strokeWidth="1.5"/>{label&&<text x={x-14} y={y+4} fill={color} fontSize="8" textAnchor="end">{label}</text>}</g>
+  );
+  const Res=({x,y,label,color})=>(
+    <g><line x1={x} y1={y-20} x2={x} y2={y-12} stroke={color} strokeWidth="1.5"/><rect x={x-8} y={y-12} width={16} height={24} fill={`${color}18`} stroke={color} strokeWidth="1.2"/><line x1={x} y1={y+12} x2={x} y2={y+20} stroke={color} strokeWidth="1.5"/>{label&&<text x={x+12} y={y+4} fill={color} fontSize="8">{label}</text>}</g>
+  );
+  const VSource=({x,y,color})=>(
+    <g><line x1={x} y1={y-22} x2={x} y2={y-14} stroke={color} strokeWidth="1.5"/><circle cx={x} cy={y} r={14} fill={`${color}18`} stroke={color} strokeWidth="1.5"/><text x={x} y={y-3} fill={color} fontSize="10" textAnchor="middle">+</text><text x={x} y={y+9} fill={color} fontSize="10" textAnchor="middle">−</text><line x1={x} y1={y+14} x2={x} y2={y+22} stroke={color} strokeWidth="1.5"/></g>
+  );
+  const Gnd=({x,y,color})=>(
+    <g><line x1={x} y1={y} x2={x} y2={y+8} stroke={color} strokeWidth="1.5"/><line x1={x-10} y1={y+8} x2={x+10} y2={y+8} stroke={color} strokeWidth="2"/><line x1={x-6} y1={y+13} x2={x+6} y2={y+13} stroke={color} strokeWidth="1.5"/><line x1={x-2} y1={y+18} x2={x+2} y2={y+18} stroke={color} strokeWidth="1"/></g>
+  );
+  const GndUp=({x,y,color})=>(
+    <g><line x1={x} y1={y} x2={x} y2={y-8} stroke={color} strokeWidth="1.5"/><line x1={x-10} y1={y-8} x2={x+10} y2={y-8} stroke={color} strokeWidth="2"/><line x1={x-6} y1={y-13} x2={x+6} y2={y-13} stroke={color} strokeWidth="1.5"/><line x1={x-2} y1={y-18} x2={x+2} y2={y-18} stroke={color} strokeWidth="1"/></g>
+  );
+  return(
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:"block"}}>
+      <rect width={W} height={H} fill="#030810" rx="6"/>
+      <text x={W/2} y="15" fill="#2a5a8a" fontSize="9" textAnchor="middle" letterSpacing="1.5">LUMPED-ELEMENT CIRCUIT MODEL — TRANSMON + λ/4 RESONATOR</text>
+      <line x1={60} y1={gBusY} x2={555} y2={gBusY} stroke="#2a4060" strokeWidth="1.5" opacity="0.6"/>
+      <Gnd x={qcx} y={gBusY} color="#00ffaa66"/>
+      <Gnd x={rcx} y={gBusY} color="#00aaff66"/>
+      <Gnd x={dx} y={gBusY} color="#ff660066"/>
+      <rect x={50} y={22} width={80} height={148} fill="#ff660008" stroke="#ff6600" strokeWidth="1" rx="5" strokeDasharray="4,3" opacity="0.9"/>
+      <text x={dx} y={18} fill="#ff6600" fontSize="8" textAnchor="middle" fontWeight="700" letterSpacing="1">XY DRIVE</text>
+      <GndUp x={dx} y={gndTopY} color="#ff660099"/>
+      <VSource x={dx} y={vsY} color="#ff6600"/>
+      <Res x={dx} y={rY} label="Z₀=50Ω" color="#ff8844"/>
+      <Cap x={dx} y={cdY} color="#ff8844"/>
+      <text x={dx-15} y={cdY+4} fill="#ff8844" fontSize="8" textAnchor="end">C_d</text>
+      <line x1={dx} y1={162} x2={dx} y2={qBusY} stroke="#ff8844" strokeWidth="1.2"/>
+      <line x1={dx} y1={qBusY} x2={qL} y2={qBusY} stroke="#ff8844" strokeWidth="1.2"/>
+      <rect x={192} y={108} width={82} height={166} fill="#00ffaa08" stroke="#00ffaa44" strokeWidth="1" rx="6" strokeDasharray="4,3"/>
+      <text x={qcx} y={103} fill="#00ffaa" fontSize="8" textAnchor="middle" fontWeight="700" letterSpacing="1">TRANSMON</text>
+      <line x1={qL} y1={qBusY} x2={qR} y2={qBusY} stroke="#00ffaa" strokeWidth="1.8"/>
+      <circle cx={qcx} cy={qBusY} r="3.5" fill="#00ffaa"/>
+      <line x1={qL} y1={qBusY} x2={qL} y2={midY-18} stroke="#00ffaa" strokeWidth="1.2"/>
+      <Cap x={qL} y={midY} color="#00ffaa"/>
+      <line x1={qL} y1={midY+18} x2={qL} y2={gBusY} stroke="#00ffaa" strokeWidth="1.2"/>
+      <line x1={qR} y1={qBusY} x2={qR} y2={midY-20} stroke="#ffdd00" strokeWidth="1.2"/>
+      <JJ x={qR} y={midY} color="#ffdd00"/>
+      <line x1={qR} y1={midY+20} x2={qR} y2={gBusY} stroke="#ffdd00" strokeWidth="1.2"/>
+      <line x1={qL} y1={gBusY} x2={qR} y2={gBusY} stroke="#00ffaa" strokeWidth="1.8"/>
+      <text x={qL-4} y={midY-22} fill="#00ffaa" fontSize="7.5" textAnchor="end">E_C/h = {Ec} GHz</text>
+      <text x={qL-4} y={midY+4} fill="#00ffaa" fontSize="8" textAnchor="end">C_s</text>
+      <text x={qR+4} y={midY-22} fill="#ffdd00" fontSize="7.5">E_J/h = {Ej} GHz</text>
+      <text x={qR+4} y={midY+4} fill="#ffdd00" fontSize="8">JJ</text>
+      <text x={qcx} y={gBusY+26} fill="#00ffaa" fontSize="7.5" textAnchor="middle">ω₁₀/2π ≈ √(8E_JE_C)−E_C = {qubitFreq} GHz</text>
+      <text x={qcx} y={gBusY+38} fill="#ffdd44" fontSize="7.5" textAnchor="middle">α/2π = −E_C = {anharmonicity} MHz</text>
+      <line x1={qR} y1={qBusY} x2={ccX-18} y2={qBusY} stroke="#44ddff" strokeWidth="1.2"/>
+      <HCap x={ccX} y={qBusY} label="C_c" sublabel={`g/2π=${couplingG} MHz`} color="#44ddff"/>
+      <line x1={ccX+18} y1={qBusY} x2={rL} y2={qBusY} stroke="#44ddff" strokeWidth="1.2"/>
+      <rect x={440} y={108} width={96} height={166} fill="#00aaff08" stroke="#00aaff44" strokeWidth="1" rx="6" strokeDasharray="4,3"/>
+      <text x={rcx} y={103} fill="#00aaff" fontSize="8" textAnchor="middle" fontWeight="700" letterSpacing="1">λ/4 RESONATOR</text>
+      <line x1={rL} y1={qBusY} x2={rR} y2={qBusY} stroke="#00aaff" strokeWidth="1.8"/>
+      <circle cx={rcx} cy={qBusY} r="3.5" fill="#00aaff"/>
+      <line x1={rL} y1={qBusY} x2={rL} y2={midY-23} stroke="#00aaff" strokeWidth="1.2"/>
+      <Inductor x={rL} y={midY} label="L_r" color="#00aaff"/>
+      <line x1={rL} y1={midY+23} x2={rL} y2={gBusY} stroke="#00aaff" strokeWidth="1.2"/>
+      <line x1={rR} y1={qBusY} x2={rR} y2={midY-18} stroke="#00aaff" strokeWidth="1.2"/>
+      <Cap x={rR} y={midY} color="#00aaff"/>
+      <line x1={rR} y1={midY+18} x2={rR} y2={gBusY} stroke="#00aaff" strokeWidth="1.2"/>
+      <line x1={rL} y1={gBusY} x2={rR} y2={gBusY} stroke="#00aaff" strokeWidth="1.8"/>
+      <text x={rR+4} y={midY+4} fill="#00aaff" fontSize="8">C_r</text>
+      <line x1={rR} y1={qBusY} x2={rR+20} y2={qBusY} stroke="#00aaff" strokeWidth="1.3" opacity="0.8"/>
+      <HCap x={rR+38} y={qBusY} color="#00aaff"/>
+      <text x={rR+38} y={qBusY-16} fill="#00aaff" fontSize="7.5" textAnchor="middle">κ_out</text>
+      <line x1={rR+56} y1={qBusY} x2={rR+68} y2={qBusY} stroke="#00aaff" strokeWidth="1" opacity="0.7"/>
+      <text x={rR+72} y={qBusY+4} fill="#00aaff" fontSize="7.5">Out</text>
+      <text x={rcx} y={gBusY+26} fill="#00aaff" fontSize="7.5" textAnchor="middle">ω_r/2π = {readoutFreq} GHz</text>
+      <text x={rcx} y={gBusY+38} fill="#00aaff" fontSize="7.5" textAnchor="middle">κ/2π = 1.8 MHz</text>
+      <rect x={qcx-54} y={gBusY+60} width={108} height={74} fill="#aa44ff08" stroke="#aa44ff" strokeWidth="1" rx="5" strokeDasharray="4,3" opacity="0.8"/>
+      <text x={qcx} y={gBusY+56} fill="#aa44ff" fontSize="8" textAnchor="middle" fontWeight="700" letterSpacing="1">Z FLUX</text>
+      <Inductor x={qcx} y={fY} label="L_flux" color="#aa44ff"/>
+      <line x1={qcx+12} y1={fY-8} x2={qR+6} y2={midY+22} stroke="#aa44ff" strokeWidth="1" strokeDasharray="3,2" opacity="0.7"/>
+      <text x={(qcx+12+qR+6)/2+8} y={(fY-8+midY+22)/2} fill="#aa44ff" fontSize="9" fontStyle="italic">M</text>
+      <rect x={424} y={gBusY+58} width={196} height={78} rx="4" fill="#02060f" stroke="#1a3050" strokeWidth="1"/>
+      <text x={522} y={gBusY+74} fill="#ffaa44" fontSize="8" textAnchor="middle" fontWeight="700">DISPERSIVE REGIME</text>
+      <text x={522} y={gBusY+89} fill="#44ddff" fontSize="7.5" textAnchor="middle">χ/2π = g²/Δ = {chi} MHz</text>
+      <text x={522} y={gBusY+103} fill="#44ddff" fontSize="7.5" textAnchor="middle">Δ/2π = ω_q−ω_r = {(qubitFreq-readoutFreq).toFixed(2)} GHz</text>
+    </svg>
+  );
+}
+
+function EnergyLevels({bz,qubitFreq,readoutFreq,couplingG,anharmonicity}){
+  const chi=((couplingG**2)/Math.abs((qubitFreq-readoutFreq)*1000)).toFixed(2);
+  const W=560,H=310,levels=[0,1,2,3,4],alpha=anharmonicity/1000;
+  const E=levels.map(n=>n*qubitFreq+n*(n-1)/2*alpha),Emax=E[4]+0.5,yScale=(H-60)/Emax;
+  const barX=140,excited=(1-bz)/2,resLevels=[0,1,2],resE=resLevels.map(n=>n*readoutFreq);
+  return(
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:"block"}}>
+      <defs><marker id="aUp" markerWidth="6" markerHeight="6" refX="3" refY="5" orient="auto"><path d="M0,6 L3,0 L6,6 Z" fill="#ffdd44" opacity="0.8"/></marker></defs>
+      <rect width={W} height={H} fill="#030810" rx="6"/>
+      <text x={W/2} y="18" fill="#2a5a8a" fontSize="9" textAnchor="middle" letterSpacing="1.5">ENERGY LEVEL DIAGRAM (ROTATING FRAME)</text>
+      <text x={barX} y="32" fill="#00ffaa" fontSize="8.5" textAnchor="middle" fontWeight="700">TRANSMON</text>
+      {levels.map(n=>{
+        const ey=H-44-E[n]*yScale,isOcc=n===0&&excited<0.3||n===1&&excited>0.5;
+        const col=n===0?"#00ffaa":n===1?"#ffaa00":n===2?"#ff6644":"#ff3333";
+        const pop=n===0?(1-excited):n===1?excited:0;
+        return(<g key={n}>
+          <line x1={barX-60} y1={ey} x2={barX+60} y2={ey} stroke={col} strokeWidth={isOcc?2.5:1.5} opacity={isOcc?1:0.5}/>
+          {pop>0.01&&<rect x={barX+62} y={ey-6} width={pop*40} height={12} fill={`${col}44`} stroke={col} strokeWidth="1" rx="2"/>}
+          <text x={barX-66} y={ey+4} fill={col} fontSize="8.5" textAnchor="end">|{n}⟩</text>
+          <text x={barX+108} y={ey+4} fill={col} fontSize="7.5">{E[n].toFixed(3)} GHz</text>
+          {isOcc&&<circle cx={barX} cy={ey} r={7} fill={col} opacity={0.8} style={{animation:"pulse 0.8s ease-in-out infinite"}}/>}
+        </g>);
+      })}
+      {[[0,1],[1,2],[2,3]].map(([a,b])=>{
+        const ya=H-44-E[a]*yScale,yb=H-44-E[b]*yScale,freq=(E[b]-E[a]).toFixed(3),col=a===0?"#ffdd44":"#ff8844";
+        return(<g key={`${a}${b}`}><line x1={barX+22} y1={ya-4} x2={barX+22} y2={yb+4} stroke={col} strokeWidth="1.5" opacity="0.7"/><text x={barX+26} y={(ya+yb)/2+4} fill={col} fontSize="7">{freq} GHz</text></g>);
+      })}
+      {(()=>{const y01=H-44-E[1]*yScale,y12=H-44-E[2]*yScale;return(<g><line x1={barX+52} y1={y12} x2={barX+64} y2={y12} stroke="#ff6644" strokeWidth="1"/><line x1={barX+52} y1={y01} x2={barX+64} y2={y01} stroke="#ff6644" strokeWidth="1"/><line x1={barX+60} y1={y12} x2={barX+60} y2={y01} stroke="#ff6644" strokeWidth="1"/><text x={barX+66} y={(y01+y12)/2+4} fill="#ff6644" fontSize="7.5">α={anharmonicity} MHz</text></g>);})()}
+      <text x={W-160} y="32" fill="#00aaff" fontSize="8.5" textAnchor="middle" fontWeight="700">RESONATOR</text>
+      {resLevels.map(n=>{const ey=H-44-resE[n]*yScale;return(<g key={`r${n}`}><line x1={W-220} y1={ey} x2={W-100} y2={ey} stroke="#00aaff" strokeWidth="1.5" opacity={n===0?0.9:0.5}/><text x={W-226} y={ey+4} fill="#00aaff" fontSize="8.5" textAnchor="end">|{n}⟩_r</text><text x={W-94} y={ey+4} fill="#00aaff" fontSize="7.5">{resE[n].toFixed(2)} GHz</text></g>);})}
+      {(()=>{const base=H-44-resE[1]*yScale,chiPx=parseFloat(chi)*yScale*0.12;return(<g><line x1={W-160} y1={base} x2={W-160} y2={base-chiPx} stroke="#44ddff" strokeWidth="2" strokeDasharray="3,2"/><text x={W-157} y={base-chiPx/2+3} fill="#44ddff" fontSize="7">χ</text><text x={W-160} y={H-14} fill="#44ddff" fontSize="7.5" textAnchor="middle">Dispersive shift χ/2π = {chi} MHz</text></g>);})()}
+      {(()=>{const ya=H-44-E[0]*yScale,yb=H-44-E[1]*yScale;return(<g><line x1={barX-80} y1={ya} x2={barX-80} y2={yb} stroke="#ff6600" strokeWidth="2" strokeDasharray="4,2" markerEnd="url(#aUp)"/><text x={barX-82} y={(ya+yb)/2} fill="#ff6600" fontSize="7.5" textAnchor="end">ω_drive</text></g>);})()}
+      <text x={barX} y={H-12} fill="#2a5a8a" fontSize="7.5" textAnchor="middle">Population: |0⟩ = {((1-excited)*100).toFixed(0)}%  |1⟩ = {(excited*100).toFixed(0)}%</text>
+    </svg>
+  );
+}
+
+function InstrumentViz({isRunning,readoutActive,qubitFreq}){
+  const[phase,setPhase]=useState(0);
+  useEffect(()=>{const id=setInterval(()=>setPhase(p=>p+0.18),40);return()=>clearInterval(id);},[]);
+  const W=560,H=310,panelH=88,panelY=[14,116,218];
+  const pts=(fn,x0,x1,y0,amp,n=120)=>Array.from({length:n},(_,i)=>{const t=i/(n-1),x=x0+t*(x1-x0),y=y0-fn(t)*amp;return`${i===0?"M":"L"}${x.toFixed(1)},${y.toFixed(1)}`}).join(" ");
+  const awgEnv=t=>isRunning?Math.exp(-((t-0.5)**2)/0.04):0.18+0.12*Math.sin(t*6);
+  const awgI=t=>awgEnv(t)*Math.cos(2*Math.PI*4*t+phase),awgQ=t=>awgEnv(t)*Math.sin(2*Math.PI*4*t+phase);
+  const lo=t=>Math.sin(2*Math.PI*10*t+phase*0.3);
+  const adcSignal=t=>{const b=0.08*Math.sin(2*Math.PI*3.1*t+phase*0.7+1.2);return readoutActive?b+0.55*Math.exp(-((t-0.45)**2)/0.025)*Math.sin(2*Math.PI*8*t+phase):b;};
+  const adcDemod=t=>readoutActive?0.6*Math.exp(-((t-0.45)**2)/0.04)*(t<0.45?t/0.45:(1-t)/0.55):0.05*Math.sin(t*4+phase*0.2);
+  const instruments=[
+    {label:"AWG",sub:"Arbitrary Waveform Generator",color:"#ff6b35",y:panelY[0],traces:[{fn:awgI,color:"#ff6b35",label:"I",dash:""},{fn:awgQ,color:"#ffaa55",label:"Q",dash:"4,3"}],stats:[{l:"Sample rate",v:"2.5 GSa/s"},{l:"Resolution",v:"14 bit"},{l:"Bandwidth",v:"1.2 GHz"},{l:"IF freq",v:"250 MHz"}]},
+    {label:"LO",sub:"Local Oscillator · PLL",color:"#ffcc00",y:panelY[1],traces:[{fn:lo,color:"#ffcc00",label:"RF",dash:""}],stats:[{l:"Freq",v:`${qubitFreq.toFixed(2)} GHz`},{l:"Power",v:"+15 dBm"},{l:"Phase noise",v:"−110 dBc/Hz"},{l:"Tuning",v:"PLL locked"}]},
+    {label:"ADC",sub:"Heterodyne Readout",color:"#00ccff",y:panelY[2],traces:[{fn:adcSignal,color:"#00ccff",label:"Raw",dash:""},{fn:adcDemod,color:"#88ffdd",label:"Demod",dash:"4,3"}],stats:[{l:"Sample rate",v:"1 GSa/s"},{l:"Resolution",v:"12 bit"},{l:"IF BW",v:"10 MHz"},{l:"Integration",v:"300 ns"}]},
+  ];
+  const traceX0=190,traceX1=W-14;
+  return(
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:"block",fontFamily:"monospace"}}>
+      <defs>
+        <filter id="tG"><feGaussianBlur stdDeviation="1.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <style>{`@keyframes sS{0%{opacity:0.6}50%{opacity:1}100%{opacity:0.6}}.scope-trace{animation:sS 2s ease-in-out infinite}`}</style>
+      </defs>
+      <rect width={W} height={H} fill="#030810" rx="8"/>
+      {instruments.map((inst,idx)=>{
+        const midY=inst.y+panelH/2;
+        return(<g key={inst.label}>
+          <rect x="6" y={inst.y} width={W-12} height={panelH-4} rx="5" fill={`${inst.color}07`} stroke={`${inst.color}33`} strokeWidth="1"/>
+          <rect x="10" y={inst.y+4} width="176" height={panelH-12} rx="4" fill={`${inst.color}12`} stroke={`${inst.color}44`} strokeWidth="1"/>
+          <text x="18" y={inst.y+18} fill={inst.color} fontSize="11" fontWeight="700" letterSpacing="1.5">{inst.label}</text>
+          <text x="18" y={inst.y+30} fill={inst.color} fontSize="8" opacity="0.7">{inst.sub}</text>
+          {inst.stats.map((s,si)=>(
+            <g key={si}>
+              <text x={18+(si%2)*90} y={inst.y+44+Math.floor(si/2)*22} fill="#6a9fc0" fontSize="8.5">{s.l}:</text>
+              <text x={18+(si%2)*90} y={inst.y+55+Math.floor(si/2)*22} fill={inst.color} fontSize="9">{s.v}</text>
+            </g>
+          ))}
+          <rect x={traceX0-2} y={inst.y+4} width={traceX1-traceX0+4} height={panelH-12} rx="3" fill="#020710" stroke={`${inst.color}22`} strokeWidth="1"/>
+          {[0.25,0.5,0.75].map(f=><line key={f} x1={traceX0+f*(traceX1-traceX0)} y1={inst.y+6} x2={traceX0+f*(traceX1-traceX0)} y2={inst.y+panelH-10} stroke={`${inst.color}18`} strokeWidth="0.8" strokeDasharray="2,3"/>)}
+          <line x1={traceX0} y1={midY} x2={traceX1} y2={midY} stroke={`${inst.color}22`} strokeWidth="0.8"/>
+          {inst.traces.map((tr,ti)=>(
+            <g key={ti}>
+              <path d={pts(tr.fn,traceX0,traceX1,midY,26)} fill="none" stroke={tr.color} strokeWidth="1.5" strokeDasharray={tr.dash||"none"} filter="url(#tG)" className="scope-trace" opacity={ti===1?0.75:1}/>
+              <text x={traceX1-28} y={inst.y+14+ti*11} fill={tr.color} fontSize="8" opacity="0.85">— {tr.label}</text>
+            </g>
+          ))}
+          {((isRunning&&inst.label!=="ADC")||(readoutActive&&inst.label==="ADC"))?
+            <circle cx={traceX0-10} cy={inst.y+12} r="4" fill={inst.color} opacity="0.9" style={{animation:"pulse 0.5s ease-in-out infinite"}}/>:
+            <circle cx={traceX0-10} cy={inst.y+12} r="4" fill="none" stroke={inst.color} strokeWidth="1" opacity="0.4"/>}
+        </g>);
+      })}
+      {[panelY[1],panelY[2]].map(y=><line key={y} x1="6" y1={y-2} x2={W-6} y2={y-2} stroke="#1a3050" strokeWidth="0.8" strokeDasharray="6,6"/>)}
+    </svg>
+  );
+}
+
+function PulseEditor({sequence,onAddGate,onClear,isRunning}){
+  const colors={X:"#ff4466",Y:"#44aaff",H:"#aa44ff","X/2":"#ff8844","Y/2":"#44ddff",Z:"#ffdd44"};
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        {Object.keys(GATE_PULSES).map(g=>(
+          <button key={g} onClick={()=>onAddGate(g)} disabled={isRunning} style={{background:`${colors[g]}22`,border:`1.5px solid ${colors[g]}88`,color:colors[g],fontFamily:"monospace",fontSize:11,fontWeight:700,padding:"4px 10px",borderRadius:5,cursor:isRunning?"not-allowed":"pointer"}}>{g}</button>
+        ))}
+        <button onClick={onClear} disabled={isRunning} style={{background:"#ff224422",border:"1.5px solid #ff224488",color:"#ff2244",fontFamily:"monospace",fontSize:11,padding:"4px 10px",borderRadius:5,cursor:"pointer"}}>CLR</button>
+      </div>
+      <div style={{background:"#040810",border:"1px solid #1e3a5f",borderRadius:6,padding:"6px 10px",minHeight:32,display:"flex",gap:4,alignItems:"center",flexWrap:"wrap"}}>
+        {sequence.length===0?<span style={{color:"#2a4060",fontFamily:"monospace",fontSize:10}}>— empty sequence —</span>:
+          sequence.map((g,i)=><span key={i} style={{background:`${colors[g]}22`,border:`1px solid ${colors[g]}66`,color:colors[g],fontFamily:"monospace",fontSize:10,padding:"2px 6px",borderRadius:3}}>{g}</span>)}
+      </div>
+    </div>
+  );
+}
+
+function CoherenceChart({data,label,color}){
+  const W=200,H=60,pad=4;
+  const n=data.length;
+  if(n<2)return null;
+  const pts=data.map((d,i)=>{
+    const x=pad+(i/(n-1))*(W-pad*2);
+    const y=pad+(1-(d.v+1)/2)*(H-pad*2);
+    return`${i===0?"M":"L"}${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  return(
+    <div style={{flex:1,minWidth:0}}>
+      <div style={{color:"#4a7fa5",fontFamily:"monospace",fontSize:9,marginBottom:4}}>{label}</div>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:"block",background:"#020710",borderRadius:4,border:"1px solid #1a3050"}}>
+        <line x1={pad} y1={H/2} x2={W-pad} y2={H/2} stroke="#1a3050" strokeWidth="0.8"/>
+        <path d={pts} fill="none" stroke={color} strokeWidth="1.5" opacity="0.9"/>
+      </svg>
+    </div>
+  );
+}
+
+function QubitSimulator(){
+  const[bx,setBx]=useState(0),[by,setBy]=useState(0),[bz,setBz]=useState(-1);
+  const[history,setHistory]=useState([]),[sequence,setSequence]=useState([]);
+  const[isRunning,setIsRunning]=useState(false),[signalActive,setSignalActive]=useState(false),[readoutActive,setReadoutActive]=useState(false);
+  const[T1,setT1]=useState(500),[T2,setT2]=useState(200);
+  const[qubitFreq,setQubitFreq]=useState(5.2),[anharmonicity]=useState(-220);
+  const[readoutFreq,setReadoutFreq]=useState(6.8),[couplingG,setCouplingG]=useState(80);
+  const[fidelity,setFidelity]=useState(99.4),[activeGate,setActiveGate]=useState(null);
+  const[bzHistory,setBzHistory]=useState(Array.from({length:80},(_,i)=>({t:i,v:-1})));
+  const[bxHistory,setBxHistory]=useState(Array.from({length:80},(_,i)=>({t:i,v:0})));
+  const stateRef=useRef({bx:0,by:0,bz:-1}),runRef=useRef(false),histRef=useRef([]);
+  const dispersiveShift=((couplingG**2)/(qubitFreq*1000-readoutFreq*1000)).toFixed(1);
+  const kerr=(anharmonicity/1000*-1).toFixed(3);
+  const driveAmp=(0.02*Math.PI/T1*1000).toFixed(4);
+  const resetQubit=useCallback(()=>{stateRef.current={bx:0,by:0,bz:-1};setBx(0);setBy(0);setBz(-1);histRef.current=[];setHistory([]);},[]);
+  const runSequence=useCallback(async()=>{
+    if(sequence.length===0)return;
+    setIsRunning(true);setSignalActive(true);runRef.current=true;
+    for(const gate of sequence){
+      if(!runRef.current)break;
+      setActiveGate(gate);
+      const pulse=GATE_PULSES[gate],steps=pulse.duration,dt=1/steps,ox=pulse.omegaX/steps,oy=pulse.omegaY/steps;
+      for(let i=0;i<steps;i++){
+        if(!runRef.current)break;
+        await new Promise(r=>setTimeout(r,16));
+        const{bx:cx,by:cy,bz:cz}=stateRef.current;
+        const[nx,ny,nz]=blochStep(cx,cy,cz,dt,T1,T2,ox,oy,0);
+        stateRef.current={bx:nx,by:ny,bz:nz};setBx(nx);setBy(ny);setBz(nz);
+        histRef.current=[...histRef.current.slice(-80),[nx,ny,nz]];setHistory([...histRef.current]);
+      }
+      await new Promise(r=>setTimeout(r,50));
+    }
+    setActiveGate(null);setSignalActive(false);setReadoutActive(true);
+    await new Promise(r=>setTimeout(r,600));setReadoutActive(false);setIsRunning(false);
+  },[sequence,T1,T2]);
+  useEffect(()=>{
+    const id=setInterval(()=>{
+      if(isRunning)return;
+      const{bx:cx,by:cy,bz:cz}=stateRef.current;
+      const[nx,ny,nz]=blochStep(cx,cy,cz,1,T1*2,T2*2,0,0,0);
+      stateRef.current={bx:nx,by:ny,bz:nz};setBx(nx);setBy(ny);setBz(nz);
+      setBzHistory(prev=>[...prev.slice(1),{t:prev[prev.length-1].t+1,v:nz}]);
+      setBxHistory(prev=>[...prev.slice(1),{t:prev[prev.length-1].t+1,v:nx}]);
+    },100);
+    return()=>clearInterval(id);
+  },[isRunning,T1,T2]);
+  const gateColors={X:"#ff4466",Y:"#44aaff",H:"#aa44ff","X/2":"#ff8844","Y/2":"#44ddff",Z:"#ffdd44"};
+  return(
+    <div style={{background:"#030508",minHeight:"100vh",fontFamily:"monospace",color:"#8ab4d4",display:"flex",flexDirection:"column"}}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&display=swap');
+        @keyframes pulse{0%,100%{opacity:0.4}50%{opacity:1}}
+        @keyframes gateActive{0%,100%{box-shadow:0 0 8px currentColor}50%{box-shadow:0 0 20px currentColor}}
+        .stat-val{font-family:'Share Tech Mono',monospace;color:#00d4ff;font-size:clamp(11px,1.5vw,14px)}
+        .stat-label{font-size:clamp(8px,1vw,10px);color:#5a8ab4;letter-spacing:1px;text-transform:uppercase}
+        .panel{background:linear-gradient(135deg,#060d18,#040b14);border:1px solid #1a3050;border-radius:10px;padding:14px;min-width:0}
+        .panel-title{font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:#4a80aa;text-transform:uppercase;margin-bottom:12px;border-bottom:1px solid #1a3050;padding-bottom:6px}
+        .sub-label{font-size:10px;color:#6a9fc0}
+        .mono-val{font-family:'Share Tech Mono',monospace;color:#00d4ff;font-size:11px}
+        .dim-label{font-size:9px;color:#5a8ab4}
+        input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:#1a3050;border-radius:2px;outline:none}
+        input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:#00aaff;border-radius:50%;cursor:pointer}
+        button:hover:not(:disabled){filter:brightness(1.3);transform:translateY(-1px)}
+        .main-grid{display:grid;grid-template-columns:260px minmax(0,1fr) 230px;gap:12px;padding:12px;flex:1;overflow:hidden}
+        .left-col,.right-col,.center-col{display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+        @media(max-width:1100px){.main-grid{grid-template-columns:220px minmax(0,1fr) 200px;gap:8px;padding:8px}}
+        @media(max-width:860px){.main-grid{grid-template-columns:minmax(0,1fr);overflow-y:auto}.left-col{flex-direction:row;flex-wrap:wrap;overflow-y:visible}.left-col>*{flex:1 1 280px}.right-col{flex-direction:row;flex-wrap:wrap;overflow-y:visible}.right-col>*{flex:1 1 260px}}
+        @media(max-width:540px){.left-col>*,.right-col>*{flex:1 1 100%}}
+        .header{background:linear-gradient(90deg,#040a14,#060f1e,#040a14);border-bottom:1px solid #1a3050;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;flex-wrap:wrap;gap:8px}
+        .header-stats{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+        .header-title{font-family:'Rajdhani',sans-serif;font-size:clamp(13px,2.5vw,19px);font-weight:700;color:#00ccff;letter-spacing:3px}
+        .header-sub{font-size:clamp(7px,1vw,10px);color:#5a8ab4;letter-spacing:2px;margin-top:2px}
+        .bloch-row{display:grid;grid-template-columns:minmax(180px,260px) minmax(0,1fr);gap:10px}
+        @media(max-width:600px){.bloch-row{grid-template-columns:1fr}}
+        .dec-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+        .chip-params-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:2px}
+        .readout-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+      `}</style>
+      <div className="header">
+        <div>
+          <div className="header-title">SUPERCONDUCTING QUBIT SIMULATOR</div>
+          <div className="header-sub">TRANSMON ARCHITECTURE · FULL CRYOGENIC STACK · LINDBLAD MASTER EQUATION</div>
+        </div>
+        <div className="header-stats">
+          {[{l:"FREQ",v:`${qubitFreq} GHz`},{l:"T₁",v:`${T1} μs`},{l:"T₂",v:`${T2} μs`},{l:"FIDELITY",v:`${fidelity}%`}].map(({l,v})=>(
+            <div key={l} style={{textAlign:"center"}}><div className="stat-label">{l}</div><div className="stat-val">{v}</div></div>
+          ))}
+          <div style={{width:9,height:9,borderRadius:"50%",background:isRunning?"#00ff88":signalActive?"#ffaa00":"#ff4444",boxShadow:`0 0 8px ${isRunning?"#00ff88":"#ff4444"}`,animation:isRunning?"pulse 0.5s infinite":"none",flexShrink:0}}/>
+          <div style={{borderLeft:"1px solid #1a3050",paddingLeft:12,fontFamily:"'Share Tech Mono',monospace",fontSize:10,color:"#3a6a8a",letterSpacing:1}}>
+            <div style={{color:"#5a8ab4"}}>AUTHOR</div><div style={{color:"#00aacc"}}>Shamith P.</div>
+          </div>
+        </div>
+      </div>
+      <div className="main-grid">
+        <div className="left-col">
+          <div className="panel"><div className="panel-title">Dilution Refrigerator</div><CryoStack signalActive={signalActive} readoutActive={readoutActive}/></div>
+          <div className="panel">
+            <div className="panel-title">Chip Parameters</div>
+            <div style={{display:"flex",flexDirection:"column",gap:11}}>
+              {[{label:"Qubit Freq (GHz)",val:qubitFreq,set:setQubitFreq,min:4,max:8,step:0.1},{label:"Readout Freq (GHz)",val:readoutFreq,set:setReadoutFreq,min:5,max:9,step:0.1},{label:"Coupling g (MHz)",val:couplingG,set:setCouplingG,min:20,max:200,step:5}].map(({label,val,set,min,max,step})=>(
+                <div key={label}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span className="sub-label">{label}</span><span className="mono-val">{val}</span></div>
+                  <input type="range" min={min} max={max} step={step} value={val} onChange={e=>set(parseFloat(e.target.value))}/>
+                </div>
+              ))}
+              <div className="chip-params-grid">
+                {[{l:"Anharmonicity",v:`${anharmonicity} MHz`},{l:"χ/2π",v:`${dispersiveShift} MHz`},{l:"Kerr",v:`${kerr} GHz`},{l:"Drive amp",v:driveAmp}].map(({l,v})=>(
+                  <div key={l} style={{background:"#040810",border:"1px solid #1a3050",borderRadius:4,padding:"5px 7px"}}><div className="dim-label">{l}</div><div className="mono-val" style={{color:"#00aaff"}}>{v}</div></div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="panel">
+            <div className="panel-title">Pulse Sequence Editor</div>
+            <PulseEditor sequence={sequence} isRunning={isRunning} onAddGate={g=>setSequence(s=>[...s,g])} onClear={()=>setSequence([])}/>
+            <div style={{display:"flex",gap:8,marginTop:10,flexWrap:"wrap"}}>
+              <button onClick={runSequence} disabled={isRunning||sequence.length===0} style={{background:isRunning?"#1a3050":"#003a2a",border:`1.5px solid ${isRunning?"#2a5a8a":"#00ff88"}`,color:isRunning?"#4a7fa5":"#00ff88",fontFamily:"'Rajdhani',sans-serif",fontSize:13,fontWeight:700,padding:"6px 16px",borderRadius:6,cursor:isRunning?"not-allowed":"pointer",letterSpacing:2,transition:"all 0.2s"}}>
+                {isRunning?"▶ RUNNING...":"▶ RUN"}
+              </button>
+              {activeGate&&<div style={{display:"flex",alignItems:"center",gap:6,background:`${gateColors[activeGate]}22`,border:`1px solid ${gateColors[activeGate]}`,borderRadius:6,padding:"4px 10px",animation:"gateActive 0.5s infinite",color:gateColors[activeGate],fontSize:11}}>{activeGate} GATE</div>}
+            </div>
+          </div>
+        </div>
+        <div className="center-col">
+          <div className="bloch-row">
+            <div className="panel" style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+              <div className="panel-title" style={{width:"100%"}}>Quantum State (Bloch Sphere)</div>
+              <BlochSphere bx={bx} by={by} bz={bz} history={history}/>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
+                <button onClick={resetQubit} disabled={isRunning} style={{background:"#1a3050",border:"1px solid #2a5a8a",color:"#7ab4d4",fontFamily:"monospace",fontSize:11,padding:"5px 12px",borderRadius:5,cursor:"pointer"}}>RESET |0⟩</button>
+                <button onClick={()=>{stateRef.current={bx:1,by:0,bz:0};setBx(1);setBy(0);setBz(0);}} disabled={isRunning} style={{background:"#1a3050",border:"1px solid #2a5a8a",color:"#7ab4d4",fontFamily:"monospace",fontSize:11,padding:"5px 12px",borderRadius:5,cursor:"pointer"}}>SET |+⟩</button>
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:10,minWidth:0}}>
+              <div className="panel">
+                <div className="panel-title">Coherence Monitor</div>
+                <div style={{display:"flex",gap:8}}>
+                  <CoherenceChart data={bzHistory} label="⟨σz⟩ — Population" color="#00ffaa"/>
+                  <CoherenceChart data={bxHistory} label="⟨σx⟩ — Coherence" color="#00aaff"/>
+                </div>
+              </div>
+              <div className="panel">
+                <div className="panel-title">Decoherence Parameters</div>
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {[{label:"T₁ — Energy Relaxation (μs)",val:T1,set:setT1,min:10,max:1000,step:10,color:"#ff6644"},{label:"T₂ — Dephasing Time (μs)",val:T2,set:setT2,min:5,max:500,step:5,color:"#44aaff"}].map(({label,val,set,min,max,step,color})=>(
+                    <div key={label}>
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span className="sub-label">{label}</span><span style={{fontSize:11,color,fontFamily:"Share Tech Mono"}}>{val} μs</span></div>
+                      <input type="range" min={min} max={max} step={step} value={val} onChange={e=>{set(parseInt(e.target.value));setFidelity((99.4-(1000-parseInt(e.target.value))/300).toFixed(1));}} style={{accentColor:color}}/>
+                    </div>
+                  ))}
+                  <div className="dec-stats-grid">
+                    {[{l:"Γ₁",v:`${(1/T1*1000).toFixed(3)} kHz`},{l:"Γ₂",v:`${(1/T2*1000).toFixed(3)} kHz`},{l:"Γφ",v:`${Math.max(0,(1/T2-1/(2*T1))*1000).toFixed(3)} kHz`}].map(({l,v})=>(
+                      <div key={l} style={{background:"#040810",border:"1px solid #1a3050",borderRadius:4,padding:"5px 8px",textAlign:"center"}}><div className="dim-label">{l}</div><div style={{fontSize:10,color:"#ff8844",fontFamily:"Share Tech Mono"}}>{v}</div></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {[
+            {title:"Instrument I/O — AWG · Local Oscillator · ADC",content:<InstrumentViz isRunning={isRunning} readoutActive={readoutActive} qubitFreq={qubitFreq}/>},
+            {title:"Dilution Refrigerator — Cross-Section View",content:<DilutionFridge signalActive={signalActive} readoutActive={readoutActive}/>},
+            {title:"Qubit Chip — Physical Layout",content:<ChipLayout bz={bz} isRunning={isRunning} qubitFreq={qubitFreq} readoutFreq={readoutFreq} couplingG={couplingG} anharmonicity={anharmonicity}/>},
+            {title:"Qubit Circuit — Lumped Element Model",content:<CircuitDiagram qubitFreq={qubitFreq} readoutFreq={readoutFreq} couplingG={couplingG} anharmonicity={anharmonicity}/>},
+            {title:"Energy Level Diagram",content:<EnergyLevels bz={bz} qubitFreq={qubitFreq} readoutFreq={readoutFreq} couplingG={couplingG} anharmonicity={anharmonicity}/>},
+          ].map(({title,content})=>(
+            <div key={title} className="panel" style={{padding:"12px 10px 8px"}}><div className="panel-title">{title}</div>{content}</div>
+          ))}
+        </div>
+        <div className="right-col">
+          <div className="panel">
+            <div className="panel-title">Amplifier Chain</div>
+            {[{name:"TWPA",type:"Traveling Wave Parametric",gain:"+20 dB",noise:"0.5 photons",freq:"4–8 GHz",temp:"10 mK",color:"#8855ff"},{name:"HEMT",type:"High Electron Mobility",gain:"+40 dB",noise:"3 K",freq:"1–12 GHz",temp:"4 K",color:"#aa66ff"},{name:"RT AMP",type:"Room Temp Low-Noise",gain:"+30 dB",noise:"50 K",freq:"DC–20 GHz",temp:"300 K",color:"#ff8844"}].map(amp=>(
+              <div key={amp.name} style={{background:`${amp.color}0a`,border:`1px solid ${amp.color}44`,borderRadius:6,padding:"9px",marginBottom:6}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:amp.color,fontWeight:700,fontSize:12}}>{amp.name}</span><span style={{color:amp.color,fontSize:11,fontFamily:"Share Tech Mono"}}>{amp.gain}</span></div>
+                <div className="sub-label" style={{marginBottom:3}}>{amp.type}</div>
+                {[["Noise",amp.noise],["BW",amp.freq],["Temp",amp.temp]].map(([l,v])=>(
+                  <div key={l} style={{display:"flex",justifyContent:"space-between"}}><span className="dim-label">{l}</span><span style={{fontSize:10,color:"#8ac4d8",fontFamily:"Share Tech Mono"}}>{v}</span></div>
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="panel">
+            <div className="panel-title">Circulators & Isolators</div>
+            {[{name:"INPUT CIRC",role:"Prevents reflections from qubit",isolation:">20 dB",IL:"0.5 dB",color:"#00aaff"},{name:"OUTPUT CIRC",role:"Routes readout to TWPA",isolation:">25 dB",IL:"0.3 dB",color:"#0088dd"}].map(c=>(
+              <div key={c.name} style={{background:"#001a2a",border:`1px solid ${c.color}44`,borderRadius:6,padding:9,marginBottom:6}}>
+                <div style={{color:c.color,fontSize:11,fontWeight:700,marginBottom:3}}>{c.name}</div>
+                <div className="sub-label" style={{marginBottom:4}}>{c.role}</div>
+                <div style={{display:"flex",justifyContent:"space-between"}}><span className="dim-label">Isolation: <span style={{color:"#00aaff"}}>{c.isolation}</span></span><span className="dim-label">I.L.: <span style={{color:"#00aaff"}}>{c.IL}</span></span></div>
+              </div>
+            ))}
+          </div>
+          <div className="panel">
+            <div className="panel-title">Attenuator Network</div>
+            <div style={{position:"relative",paddingLeft:18}}>
+              <div style={{position:"absolute",left:7,top:0,bottom:0,width:2,background:"linear-gradient(to bottom,#ff440088,#00ffcc88)",borderRadius:1}}/>
+              {[{stage:"4 K",val:"−20 dB",purpose:"Thermal noise suppression",color:"#ff8800"},{stage:"Still",val:"−10 dB",purpose:"Blackbody radiation filter",color:"#ffcc00"},{stage:"Cold",val:"−10 dB",purpose:"4 K noise isolation",color:"#88ff88"},{stage:"MXC",val:"−10 dB",purpose:"Base plate thermalization",color:"#00ccff"}].map((att,i)=>(
+                <div key={i} style={{marginBottom:7}}>
+                  <div style={{display:"flex",gap:7,alignItems:"center"}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:att.color,flexShrink:0}}/>
+                    <div><div style={{display:"flex",gap:6}}><span style={{fontSize:10,color:att.color,fontWeight:700}}>{att.stage}</span><span style={{fontSize:10,color:att.color,fontFamily:"Share Tech Mono"}}>{att.val}</span></div><div className="dim-label">{att.purpose}</div></div>
+                  </div>
+                </div>
+              ))}
+              <div style={{fontSize:10,color:"#ff5555",fontFamily:"Share Tech Mono",marginTop:4}}>Total: −50 dB (drive line)</div>
+            </div>
+          </div>
+          <div className="panel">
+            <div className="panel-title">Readout Metrics</div>
+            <div className="readout-grid">
+              {[{l:"SNR",v:"18.4 dB"},{l:"Assignment",v:"99.1%"},{l:"Meas. time",v:"300 ns"},{l:"χ/2π",v:`${dispersiveShift} MHz`},{l:"κ/2π",v:"1.8 MHz"},{l:"n_crit",v:`${Math.floor(((qubitFreq-readoutFreq)**2)/(8*0.22**2))}`}].map(({l,v})=>(
+                <div key={l} style={{background:"#040810",border:"1px solid #1a3050",borderRadius:4,padding:"5px 7px"}}><div className="dim-label">{l}</div><div style={{fontSize:11,color:"#00ccff",fontFamily:"Share Tech Mono"}}>{v}</div></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{background:"linear-gradient(90deg,#040a14,#060f1e,#040a14)",borderTop:"1px solid #1a3050",padding:"7px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0,flexWrap:"wrap",gap:6}}>
+        <div style={{fontSize:"clamp(7px,1vw,9px)",color:"#3a6a8a",letterSpacing:1.5}}>SUPERCONDUCTING QUBIT SIMULATOR · TRANSMON ARCHITECTURE</div>
+        <div style={{fontFamily:"'Share Tech Mono',monospace",fontSize:11,color:"#5a8ab4",letterSpacing:1}}>Author — <span style={{color:"#00aacc"}}>Shamith P.</span></div>
+        <div style={{fontSize:"clamp(7px,1vw,9px)",color:"#3a6a8a",letterSpacing:1}}>LINDBLAD MASTER EQUATION · Al/AlOx/Al JOSEPHSON JUNCTIONS</div>
+      </div>
+    </div>
+  );
+}
+
+const root=ReactDOM.createRoot(document.getElementById("root"));
+root.render(<QubitSimulator/>);
+</script>
+</body>
+</html>
