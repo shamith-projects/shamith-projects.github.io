@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shamith's Projects Repository</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep: #0f1a2e;
+    --bg-card: #152238;
+    --bg-card-hover: #1b2a44;
+    --border: rgba(99, 179, 237, 0.12);
+    --border-hover: rgba(99, 179, 237, 0.35);
+    --accent-cyan: #67e8f9;
+    --accent-blue: #60a5fa;
+    --accent-violet: #a78bfa;
+    --accent-emerald: #6ee7b7;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --glow-cyan: rgba(103, 232, 249, 0.15);
+    --glow-blue: rgba(96, 165, 250, 0.15);
+    --glow-violet: rgba(167, 139, 250, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: 'Outfit', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Animated Background ── */
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(99, 179, 237, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99, 179, 237, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bg-radial {
+    position: fixed;
+    top: -30%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120vw;
+    height: 80vh;
+    background: radial-gradient(ellipse, rgba(240, 192, 64, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Floating Particles ── */
+  .particle {
+    position: fixed;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--accent-cyan);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    animation: particleDrift 12s infinite ease-in-out;
+  }
+  .particle:nth-child(1) { left: 10%; top: 20%; animation-delay: 0s; animation-duration: 14s; }
+  .particle:nth-child(2) { left: 25%; top: 60%; animation-delay: 2s; animation-duration: 10s; background: var(--accent-blue); }
+  .particle:nth-child(3) { left: 55%; top: 30%; animation-delay: 4s; animation-duration: 16s; background: var(--accent-violet); }
+  .particle:nth-child(4) { left: 75%; top: 70%; animation-delay: 1s; animation-duration: 11s; }
+  .particle:nth-child(5) { left: 90%; top: 15%; animation-delay: 3s; animation-duration: 13s; background: var(--accent-emerald); }
+  .particle:nth-child(6) { left: 40%; top: 85%; animation-delay: 5s; animation-duration: 15s; background: var(--accent-blue); }
+
+  @keyframes particleDrift {
+    0%, 100% { opacity: 0; transform: translateY(0) scale(1); }
+    25% { opacity: 0.6; }
+    50% { opacity: 0.3; transform: translateY(-40px) scale(1.5); }
+    75% { opacity: 0.5; }
+  }
+
+  /* ── Layout ── */
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 80px 0 20px;
+    text-align: center;
+    animation: fadeDown 0.8s ease-out;
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #f0c040;
+    border: 1px solid rgba(240, 192, 64, 0.3);
+    padding: 6px 18px;
+    border-radius: 100px;
+    margin-bottom: 28px;
+    background: rgba(240, 192, 64, 0.05);
+  }
+
+  h1 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    line-height: 1.15;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+  }
+
+  h1 em {
+    font-style: italic;
+    background: linear-gradient(135deg, #f7d86c, #e6a817, #d4940a, #f0c040);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    font-weight: 300;
+    max-width: 540px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  .disclaimer {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin: 14px auto 0;
+    max-width: 540px;
+    opacity: 0.9;
+  }
+
+  .github-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin: 18px auto 0;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+  }
+
+  .github-banner:hover {
+    opacity: 0.9;
+  }
+
+  .github-banner a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(100, 116, 139, 0.3);
+    transition: color 0.3s ease, border-color 0.3s ease;
+  }
+
+  .github-banner:hover a {
+    color: var(--text-primary);
+    border-color: rgba(148, 163, 184, 0.4);
+  }
+
+  /* ── Divider ── */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(240, 192, 64, 0.35), transparent);
+    margin: 50px 0 56px;
+  }
+
+  /* ── Section Label ── */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 36px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Project Cards ── */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding-bottom: 100px;
+  }
+
+  .project-card {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 40px 36px;
+    transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    cursor: pointer;
+    overflow: hidden;
+    animation: fadeUp 0.7s ease-out both;
+    text-decoration: none;
+    display: block;
+    color: inherit;
+  }
+
+  .project-card:nth-child(1) { animation-delay: 0.15s; }
+  .project-card:nth-child(2) { animation-delay: 0.3s; }
+  .project-card:nth-child(3) { animation-delay: 0.45s; }
+  .project-card:nth-child(4) { animation-delay: 0.6s; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .project-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--card-accent), transparent);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  .project-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), var(--card-glow), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+
+  .project-card:hover {
+    border-color: var(--border-hover);
+    background: var(--bg-card-hover);
+    transform: translateY(-4px);
+  }
+
+  .project-card:hover::before,
+  .project-card:hover::after {
+    opacity: 1;
+  }
+
+  .project-card.cyan  { --card-accent: var(--accent-cyan);    --card-glow: var(--glow-cyan); }
+  .project-card.blue  { --card-accent: var(--accent-blue);    --card-glow: var(--glow-blue); }
+  .project-card.violet { --card-accent: var(--accent-violet); --card-glow: var(--glow-violet); }
+  .project-card.emerald { --card-accent: var(--accent-emerald); --card-glow: rgba(110, 231, 183, 0.15); }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .cyan .card-icon  { background: rgba(103, 232, 249, 0.08); border: 1px solid rgba(103, 232, 249, 0.15); }
+  .blue .card-icon  { background: rgba(96, 165, 250, 0.08);  border: 1px solid rgba(96, 165, 250, 0.15); }
+  .violet .card-icon { background: rgba(167, 139, 250, 0.08); border: 1px solid rgba(167, 139, 250, 0.15); }
+  .emerald .card-icon { background: rgba(110, 231, 183, 0.08); border: 1px solid rgba(110, 231, 183, 0.15); }
+
+  .arrow-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    color: var(--text-muted);
+  }
+
+  .project-card:hover .arrow-icon {
+    border-color: var(--card-accent);
+    color: var(--card-accent);
+    transform: translate(3px, -3px);
+  }
+
+  .card-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    letter-spacing: -0.2px;
+  }
+
+  .card-desc {
+    font-size: 0.92rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    font-weight: 300;
+    margin-bottom: 24px;
+    max-width: 600px;
+  }
+
+  .card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .card-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+
+  .cyan .card-tag  { color: rgba(103, 232, 249, 0.7); border-color: rgba(103, 232, 249, 0.1); background: rgba(103, 232, 249, 0.03); }
+  .blue .card-tag  { color: rgba(96, 165, 250, 0.7);  border-color: rgba(96, 165, 250, 0.1);  background: rgba(96, 165, 250, 0.03); }
+  .violet .card-tag { color: rgba(167, 139, 250, 0.7); border-color: rgba(167, 139, 250, 0.1); background: rgba(167, 139, 250, 0.03); }
+  .emerald .card-tag { color: rgba(110, 231, 183, 0.7); border-color: rgba(110, 231, 183, 0.1); background: rgba(110, 231, 183, 0.03); }
+
+  /* ── Contact Banner ── */
+  .contact-banner {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px 40px;
+  }
+
+  .contact-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 18px 28px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(240, 192, 64, 0.06), rgba(240, 192, 64, 0.02));
+    border: 1px solid rgba(240, 192, 64, 0.18);
+  }
+
+  .contact-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 300;
+  }
+
+  .contact-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    color: #f0c040;
+    text-decoration: none;
+    padding: 7px 16px;
+    border-radius: 100px;
+    border: 1px solid rgba(240, 192, 64, 0.35);
+    background: rgba(240, 192, 64, 0.06);
+    transition: all 0.3s ease;
+  }
+
+  .contact-link:hover {
+    background: rgba(240, 192, 64, 0.14);
+    border-color: rgba(240, 192, 64, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(240, 192, 64, 0.12);
+  }
+
+  /* ── Footer ── */
+  footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 0 0 60px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  footer span {
+    color: #f0c040;
+  }
+
+  /* ── Responsive ── */
+  @media (min-width: 768px) {
+    .projects-grid {
+      grid-template-columns: 1fr;
+    }
+    .project-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-template-rows: auto auto auto;
+      column-gap: 28px;
+      padding: 36px 40px;
+    }
+    .card-icon {
+      grid-row: 1 / 3;
+      align-self: start;
+      margin-top: 2px;
+    }
+    .card-header {
+      grid-column: 1 / -1;
+      margin-bottom: 14px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .container { padding: 0 20px; }
+    header { padding: 50px 0 10px; }
+    .project-card { padding: 28px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Background effects -->
+<div class="bg-grid"></div>
+<div class="bg-radial"></div>
+<div class="particle"></div>
+<div class="particle"></div>
+<div class="particle"></div>
+<div class="particle"></div>
+<div class="particle"></div>
+<div class="particle"></div>
+
+<div class="container">
+  <header>
+    <div class="tag">Quantum · Cryogenics · Simulation</div>
+    <h1>Shamith's <em>Projects</em> Repository</h1>
+    <p class="subtitle">
+      A collection of research tools and simulators exploring quantum computing hardware, cryogenic engineering, and the emerging quantum ecosystem.
+    </p>
+    <p class="disclaimer">These were created as hobby projects and built with the assistance of AI.</p>
+    <p class="github-banner">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      <a href="https://github.mit.edu/shamith/projects" target="_blank" rel="noopener noreferrer">github.mit.edu/shamith/projects</a>
+    </p>
+  </header>
+
+  <div class="divider"></div>
+
+  <div class="section-label">Featured Projects</div>
+
+  <div class="projects-grid">
+
+    <!-- Project 1 -->
+    <a href="../projects/quantum-dashboard.html" class="project-card cyan" onmousemove="updateGlow(event, this)">
+      <div class="card-header">
+        <div class="card-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(0 12 12)"/>
+            <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/>
+            <ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/>
+          </svg>
+        </div>
+        <div class="arrow-icon">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 13L13 1M13 1H3M13 1V11"/>
+          </svg>
+        </div>
+      </div>
+      <div class="card-title">Superconducting Qubit Simulator</div>
+      <div class="card-desc">
+        Model and visualize the quantum dynamics of transmon qubits — including energy-level structures, gate operations, T1/T2 decoherence, and readout fidelity in a virtual circuit QED environment.
+      </div>
+      <div class="card-tags">
+        <span class="card-tag">Transmon</span>
+        <span class="card-tag">Lindblad</span>
+        <span class="card-tag">Circuit QED</span>
+        <span class="card-tag">Python</span>
+      </div>
+    </a>
+
+    <!-- Project 2 -->
+    <a href="#" class="project-card blue" onmousemove="updateGlow(event, this)">
+      <div class="card-header">
+        <div class="card-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
+            <polyline points="16 7 22 7 22 13"/>
+            <line x1="2" y1="20" x2="22" y2="20"/>
+            <line x1="6" y1="20" x2="6" y2="17"/>
+            <line x1="10" y1="20" x2="10" y2="15"/>
+            <line x1="14" y1="20" x2="14" y2="13"/>
+            <line x1="18" y1="20" x2="18" y2="10"/>
+          </svg>
+        </div>
+        <div class="arrow-icon">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 13L13 1M13 1H3M13 1V11"/>
+          </svg>
+        </div>
+      </div>
+      <div class="card-title">Quantum Startup Fund Tracker</div>
+      <div class="card-desc">
+        Track venture capital flows, funding rounds, and valuations across the quantum computing startup landscape. Analyze investment trends and identify emerging players in hardware, software, and applications.
+      </div>
+      <div class="card-tags">
+        <span class="card-tag">VC Analytics</span>
+        <span class="card-tag">Market Data</span>
+        <span class="card-tag">Dashboard</span>
+        <span class="card-tag">React</span>
+      </div>
+    </a>
+
+    <!-- Project 3 -->
+    <a href="#" class="project-card violet" onmousemove="updateGlow(event, this)">
+      <div class="card-header">
+        <div class="card-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v4"/>
+            <path d="M12 18v4"/>
+            <rect x="6" y="6" rx="2" width="12" height="12"/>
+            <rect x="8.5" y="8.5" rx="1" width="7" height="7"/>
+            <circle cx="12" cy="12" r="1.5"/>
+            <path d="M2 12h4"/>
+            <path d="M18 12h4"/>
+          </svg>
+        </div>
+        <div class="arrow-icon">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 13L13 1M13 1H3M13 1V11"/>
+          </svg>
+        </div>
+      </div>
+      <div class="card-title">Dilution Fridge Simulator</div>
+      <div class="card-desc">
+        Simulate the thermodynamic stages of a dilution refrigerator — from the 4K plate down to the mixing chamber at 10 mK. Model cooling power curves, heat loads, and wiring thermal budgets.
+      </div>
+      <div class="card-tags">
+        <span class="card-tag">Cryogenics</span>
+        <span class="card-tag">He-3/He-4</span>
+        <span class="card-tag">Thermodynamics</span>
+        <span class="card-tag">Simulation</span>
+      </div>
+    </a>
+
+    <!-- Project 4 -->
+    <a href="#" class="project-card emerald" onmousemove="updateGlow(event, this)">
+      <div class="card-header">
+        <div class="card-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6ee7b7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="6" cy="6" r="2"/>
+            <circle cx="18" cy="6" r="2"/>
+            <circle cx="6" cy="18" r="2"/>
+            <circle cx="18" cy="18" r="2"/>
+            <circle cx="12" cy="12" r="2"/>
+            <path d="M8 6h8"/>
+            <path d="M6 8v8"/>
+            <path d="M18 8v8"/>
+            <path d="M8 18h8"/>
+            <path d="M7.5 7.5l3 3"/>
+            <path d="M13.5 13.5l3 3"/>
+            <path d="M16.5 7.5l-3 3"/>
+            <path d="M7.5 16.5l3-3"/>
+          </svg>
+        </div>
+        <div class="arrow-icon">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 13L13 1M13 1H3M13 1V11"/>
+          </svg>
+        </div>
+      </div>
+      <div class="card-title">Quantum Supply Chain Map</div>
+      <div class="card-desc">
+        Visualize the global quantum technology supply chain — from rare isotope suppliers and cryogenic component manufacturers to qubit fabrication fabs and system integrators.
+      </div>
+      <div class="card-tags">
+        <span class="card-tag">Supply Chain</span>
+        <span class="card-tag">Geospatial</span>
+        <span class="card-tag">Network Graph</span>
+        <span class="card-tag">D3.js</span>
+      </div>
+    </a>
+
+  </div>
+</div>
+
+<div class="contact-banner">
+  <div class="contact-inner">
+    <span class="contact-text">Interested in collaborating or have questions?</span>
+    <a href="mailto:shamith@mit.edu" class="contact-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="4" width="20" height="16" rx="2"/>
+        <path d="M22 4L12 13 2 4"/>
+      </svg>
+      Contact Me
+    </a>
+  </div>
+</div>
+
+<footer>
+  Built by <span>Shamith</span> · 2026
+</footer>
+
+<script>
+  function updateGlow(e, card) {
+    const rect = card.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    card.style.setProperty('--mouse-x', x + '%');
+    card.style.setProperty('--mouse-y', y + '%');
+  }
+</script>
+
+</body>
+</html>
