@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shamith's Garage</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #050a18;
+  --surface:   #08102a;
+  --card:      #0c1530;
+  --card2:     #111c38;
+  --border:    #1a2545;
+  --border2:   #243060;
+  --gold:      #c9a84c;
+  --gold-lt:   #e8c96e;
+  --gold-dk:   #9e7b2c;
+  --gold-dim:  rgba(201,168,76,0.10);
+  --gold-glow: rgba(201,168,76,0.28);
+  --text:      #eceef5;
+  --text2:     #7b88b0;
+  --text3:     #3a4568;
+  --green:     #34d399;
+  --yellow:    #fbbf24;
+  --red:       #f87171;
+  --r:         12px;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+body {
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+body::before {
+  content:'';
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 90% 60% at 10% -10%, rgba(201,168,76,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 110%, rgba(30,60,180,0.08) 0%, transparent 55%);
+}
+body::after {
+  content:'';
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:
+    linear-gradient(rgba(201,168,76,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201,168,76,0.018) 1px, transparent 1px);
+  background-size:60px 60px;
+  mask-image:radial-gradient(ellipse 90% 60% at 50% 0%, black 0%, transparent 75%);
+}
+
+/* ===== HEADER ===== */
+header {
+  position:sticky;top:0;z-index:100;
+  background:rgba(5,10,24,0.92);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.header-inner {
+  max-width:1480px;margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;
+  padding:0.75rem 2rem;gap:0.75rem;
+}
+.logo {display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.logo-emblem {
+  width:42px;height:42px;
+  border:1.5px solid rgba(201,168,76,0.6);
+  border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;
+  box-shadow:0 0 20px var(--gold-glow), inset 0 0 14px rgba(201,168,76,0.07);
+  flex-shrink:0;
+  background:rgba(201,168,76,0.05);
+}
+.logo-words {display:flex;flex-direction:column;line-height:1.1;}
+.logo-eyebrow {
+  font-size:0.58rem;letter-spacing:4px;text-transform:uppercase;
+  color:var(--gold);opacity:0.75;font-weight:500;margin-bottom:1px;
+}
+.logo-name {
+  font-family:'Playfair Display',serif;
+  font-size:1.3rem;font-weight:700;color:var(--text);letter-spacing:0.3px;
+}
+.logo-name em {font-style:italic;color:var(--gold-lt);}
+
+.header-right {display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.hdr-pill {
+  display:flex;align-items:center;gap:5px;
+  padding:5px 12px;
+  background:var(--card);border:1px solid var(--border);border-radius:6px;
+  font-size:0.75rem;color:var(--text2);
+}
+.hdr-pill strong {font-family:'JetBrains Mono',monospace;font-weight:500;}
+.dot {width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+
+.btn {
+  font-family:'DM Sans',sans-serif;font-size:0.83rem;font-weight:600;
+  padding:8px 16px;border-radius:7px;border:none;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;
+  transition:all 0.18s ease;white-space:nowrap;letter-spacing:0.2px;
+}
+.btn-gold {
+  background:linear-gradient(135deg,var(--gold-lt) 0%,var(--gold) 55%,var(--gold-dk) 100%);
+  color:#060608;font-weight:700;
+  box-shadow:0 4px 22px var(--gold-glow);
+}
+.btn-gold:hover{transform:translateY(-1px);box-shadow:0 6px 30px var(--gold-glow);}
+.btn-ghost {
+  background:transparent;color:var(--text2);
+  border:1px solid var(--border2);
+}
+.btn-ghost:hover{color:var(--text);border-color:rgba(201,168,76,0.4);background:var(--gold-dim);}
+.btn-sm{padding:5px 12px;font-size:0.77rem;}
+.btn-danger{background:rgba(248,113,113,0.1);color:var(--red);border:1px solid rgba(248,113,113,0.2);}
+.btn-danger:hover{background:rgba(248,113,113,0.18);}
+
+/* ===== MAIN ===== */
+main{max-width:1480px;margin:0 auto;padding:2rem 2.5rem;position:relative;z-index:1;}
+
+.page-top {
+  display:flex;align-items:flex-end;justify-content:space-between;
+  margin-bottom:1.5rem;
+}
+.page-eyebrow {
+  font-size:0.62rem;letter-spacing:3.5px;text-transform:uppercase;
+  color:var(--gold);font-weight:600;margin-bottom:5px;
+}
+.page-title {
+  font-family:'Playfair Display',serif;
+  font-size:1.7rem;font-weight:700;color:var(--text);
+}
+
+/* ===== STAT CARDS ===== */
+.stat-row {
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;
+  margin-bottom:2rem;
+}
+.scard {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:1rem 1.3rem;
+  position:relative;overflow:hidden;
+}
+.scard::after {
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--sc-color,var(--gold));opacity:0.6;
+}
+.scard-num {
+  font-family:'Playfair Display',serif;
+  font-size:2.1rem;font-weight:700;
+  color:var(--sc-color,var(--gold));line-height:1;
+}
+.scard-lbl {
+  font-size:0.68rem;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--text3);margin-top:5px;
+}
+
+/* ===== EMPTY ===== */
+.empty-wrap {
+  text-align:center;padding:100px 20px;
+  animation:fadeUp 0.5s ease;
+}
+.empty-icon {font-size:5rem;filter:drop-shadow(0 0 30px rgba(201,168,76,0.25));margin-bottom:1rem;}
+.empty-wrap h2{font-family:'Playfair Display',serif;font-size:1.9rem;margin-bottom:8px;}
+.empty-wrap p{color:var(--text2);margin-bottom:1.8rem;}
+
+/* ===== GRID ===== */
+.cars-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(460px,1fr));gap:1.5rem;}
+
+/* ===== CAR CARD ===== */
+.car-card {
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;overflow:hidden;
+  transition:border-color 0.25s,box-shadow 0.25s;
+  animation:fadeUp 0.38s ease both;
+}
+.car-card:hover{border-color:rgba(201,168,76,0.22);box-shadow:0 14px 55px rgba(0,0,0,0.45);}
+
+/* ── Card header (no image) ── */
+.card-hero {
+  position:relative;
+  background:linear-gradient(135deg,#0c0e1e 0%,#111428 100%);
+  border-bottom:1px solid var(--border);
+  padding:18px 20px 16px;
+  overflow:hidden;
+}
+.card-hero::before {
+  content:'';
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 130% at -5% 50%, rgba(201,168,76,0.07) 0%, transparent 65%);
+  pointer-events:none;
+}
+.car-title {
+  font-family:'Playfair Display',serif;
+  font-size:1.38rem;font-weight:700;line-height:1.2;color:var(--text);
+  position:relative;
+}
+.car-year-badge {
+  display:inline-block;
+  background:var(--gold-dim);border:1px solid rgba(201,168,76,0.22);border-radius:4px;
+  font-family:'JetBrains Mono',monospace;font-size:0.67rem;font-weight:500;
+  color:var(--gold);padding:2px 8px;letter-spacing:1px;
+  margin-bottom:6px;position:relative;
+}
+.car-subtitle {
+  font-size:0.7rem;color:var(--text3);font-family:'JetBrains Mono',monospace;
+  letter-spacing:1px;margin-top:3px;position:relative;
+}
+.plate-tag {
+  position:absolute;top:14px;right:14px;
+  background:rgba(7,8,15,0.6);border:1px solid rgba(201,168,76,0.3);border-radius:5px;
+  font-family:'JetBrains Mono',monospace;font-size:0.67rem;font-weight:500;
+  color:var(--gold-lt);padding:3px 10px;letter-spacing:2px;
+}
+
+/* ── To-Do list ── */
+.todo-section{padding:0 0 10px;}
+.todo-ttl{font-size:0.6rem;letter-spacing:3.5px;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between;}
+.todo-ttl-left{display:flex;align-items:center;gap:7px;}
+.todo-ttl-left::before{content:'';width:16px;height:1px;background:var(--gold);opacity:0.45;}
+.todo-list{display:flex;flex-direction:column;gap:5px;margin-bottom:8px;}
+.todo-item{
+  display:flex;align-items:center;gap:9px;
+  background:var(--card2);border:1px solid var(--border);border-radius:8px;
+  padding:7px 10px;transition:border-color 0.15s;
+}
+.todo-item:hover{border-color:var(--border2);}
+.todo-item.done{opacity:0.5;}
+.todo-cb{
+  width:16px;height:16px;flex-shrink:0;cursor:pointer;
+  appearance:none;-webkit-appearance:none;
+  border:1.5px solid var(--border2);border-radius:4px;
+  background:transparent;transition:all 0.15s;
+  position:relative;
+}
+.todo-cb:checked{background:var(--gold);border-color:var(--gold);}
+.todo-cb:checked::after{
+  content:'✓';position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  font-size:0.65rem;color:#07080f;font-weight:700;line-height:1;
+}
+.todo-text{
+  flex:1;background:transparent;border:none;outline:none;
+  font-family:'DM Sans',sans-serif;font-size:0.84rem;color:var(--text);
+  border-bottom:1px solid transparent;transition:border-color 0.15s,text-decoration 0.15s;
+  padding:0;
+}
+.todo-text:focus{border-bottom-color:rgba(201,168,76,0.35);}
+.todo-text::placeholder{color:var(--text3);}
+.todo-item.done .todo-text{text-decoration:line-through;color:var(--text3);}
+.todo-del{
+  background:none;border:none;color:var(--text3);cursor:pointer;
+  font-size:0.8rem;padding:0;line-height:1;opacity:0;transition:opacity 0.15s,color 0.15s;
+}
+.todo-item:hover .todo-del{opacity:1;}
+.todo-del:hover{color:var(--red);}
+.todo-add-row{
+  display:flex;gap:7px;
+}
+.todo-new-inp{
+  flex:1;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:7px;
+  color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.83rem;
+  padding:7px 11px;outline:none;
+  transition:border-color 0.15s,background 0.15s;
+}
+.todo-new-inp:focus{border-color:rgba(201,168,76,0.35);background:var(--gold-dim);}
+.todo-new-inp::placeholder{color:var(--text3);}
+.todo-add-btn{
+  background:var(--gold-dim);border:1px solid rgba(201,168,76,0.2);
+  border-radius:7px;color:var(--gold);font-size:0.82rem;font-weight:600;
+  padding:7px 14px;cursor:pointer;transition:all 0.15s;white-space:nowrap;
+  font-family:'DM Sans',sans-serif;
+}
+.todo-add-btn:hover{background:rgba(201,168,76,0.18);border-color:rgba(201,168,76,0.4);}
+.todo-progress{
+  display:flex;align-items:center;gap:8px;margin-bottom:8px;
+}
+.todo-bar-wrap{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
+.todo-bar{height:100%;background:linear-gradient(90deg,var(--gold-dk),var(--gold-lt));border-radius:2px;transition:width 0.3s ease;}
+.todo-count{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:var(--text3);white-space:nowrap;}
+
+/* Card body */
+.cbody{padding:1.1rem 1.3rem 0;}
+
+/* Quick info */
+.qinfo{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;}
+.qi{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;}
+.qi-lbl{font-size:0.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:3px;}
+.qi-inp{
+  font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:500;
+  color:var(--gold-lt);background:transparent;border:none;outline:none;width:100%;
+}
+.qi-inp::placeholder{color:var(--text3);}
+.qi-inp:focus{color:var(--text);}
+
+/* Divider */
+.gdiv{height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.2) 30%,rgba(201,168,76,0.2) 70%,transparent);margin:0.4rem 0 1rem;}
+
+/* Services */
+.svc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.svc-ttl{
+  font-size:0.6rem;letter-spacing:3.5px;text-transform:uppercase;
+  color:var(--gold);font-weight:600;
+  display:flex;align-items:center;gap:7px;
+}
+.svc-ttl::before{content:'';width:16px;height:1px;background:var(--gold);opacity:0.45;}
+.add-svc-btn{
+  background:var(--gold-dim);border:1px solid rgba(201,168,76,0.18);
+  border-radius:5px;color:var(--gold);font-size:0.72rem;font-weight:600;
+  letter-spacing:0.5px;padding:3px 10px;cursor:pointer;
+  display:flex;align-items:center;gap:4px;transition:all 0.15s;
+  font-family:'DM Sans',sans-serif;
+}
+.add-svc-btn:hover{background:rgba(201,168,76,0.18);border-color:rgba(201,168,76,0.4);}
+
+.svc-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+
+/* Individual service item */
+.svc-item{
+  background:var(--card2);border:1px solid var(--border);border-radius:10px;
+  overflow:hidden;transition:border-color 0.2s;
+  border-left:3px solid var(--border2);
+}
+.svc-item:hover{border-color:var(--border2);}
+.svc-item.s-green{border-left-color:var(--green);}
+.svc-item.s-yellow{border-left-color:var(--yellow);}
+.svc-item.s-red{border-left-color:var(--red);}
+
+.svc-row1{display:flex;align-items:center;gap:8px;padding:8px 10px 4px;}
+.svc-pill{
+  border:none;cursor:pointer;border-radius:4px;
+  font-size:0.58rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  padding:2px 8px;flex-shrink:0;transition:all 0.15s;font-family:'DM Sans',sans-serif;
+}
+.p-green{background:rgba(52,211,153,0.14);color:var(--green);}
+.p-yellow{background:rgba(251,191,36,0.14);color:var(--yellow);}
+.p-red{background:rgba(248,113,113,0.14);color:var(--red);}
+.svc-pill:hover{filter:brightness(1.25);}
+
+.svc-name-inp{
+  flex:1;background:transparent;border:none;outline:none;
+  font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:600;
+  color:var(--text);padding:0;cursor:text;
+  border-bottom:1px solid transparent;transition:border-color 0.15s;
+}
+.svc-name-inp:focus{border-bottom-color:rgba(201,168,76,0.4);}
+.svc-name-inp::placeholder{color:var(--text3);}
+
+.svc-del{
+  background:none;border:none;color:var(--text3);cursor:pointer;
+  font-size:0.82rem;padding:0;line-height:1;opacity:0;transition:opacity 0.15s,color 0.15s;
+}
+.svc-item:hover .svc-del{opacity:1;}
+.svc-del:hover{color:var(--red);}
+
+/* Three date/mileage/due fields */
+.svc-row2{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;
+  padding:4px 10px 9px;
+}
+.svc-f{display:flex;flex-direction:column;gap:2px;}
+.svc-f-lbl{
+  font-size:0.57rem;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--text3);font-weight:500;
+  display:flex;align-items:center;gap:3px;
+}
+.svc-inp{
+  background:rgba(255,255,255,0.035);border:1px solid var(--border);border-radius:5px;
+  color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:0.74rem;
+  padding:4px 7px;outline:none;width:100%;
+  transition:border-color 0.15s,color 0.15s,background 0.15s;
+}
+.svc-inp:focus{border-color:rgba(201,168,76,0.4);color:var(--text);background:var(--gold-dim);}
+.svc-inp[type=date]::-webkit-calendar-picker-indicator{
+  filter:invert(0.45) sepia(1) saturate(1.5) hue-rotate(5deg);opacity:0.5;cursor:pointer;
+}
+.svc-inp[type=date]:focus::-webkit-calendar-picker-indicator{opacity:0.8;}
+.svc-inp.overdue{border-color:rgba(248,113,113,0.35);color:var(--red);}
+
+/* Notes */
+.notes-section{padding:0 0 10px;}
+.notes-ttl{font-size:0.6rem;letter-spacing:3.5px;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:7px;display:flex;align-items:center;gap:7px;}
+.notes-ttl::before{content:'';width:16px;height:1px;background:var(--gold);opacity:0.45;}
+.notes-ta{
+  width:100%;background:var(--card2);border:1px solid var(--border);border-radius:8px;
+  color:var(--text2);font-family:'DM Sans',sans-serif;font-size:0.82rem;
+  padding:9px 12px;outline:none;resize:vertical;min-height:72px;
+  transition:border-color 0.15s,color 0.15s;line-height:1.55;
+}
+.notes-ta:focus{border-color:rgba(201,168,76,0.35);color:var(--text);}
+.notes-ta::placeholder{color:var(--text3);}
+
+/* Card footer */
+.cfooter{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 1.3rem;border-top:1px solid var(--border);
+  background:rgba(0,0,0,0.18);margin-top:10px;
+}
+.ts{font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--text3);}
+
+/* ===== SYNC STATUS ===== */
+.sync-badge {
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px;
+  background:var(--card);border:1px solid var(--border);border-radius:6px;
+  font-size:0.75rem;cursor:pointer;transition:border-color 0.15s;
+  font-family:'JetBrains Mono',monospace;
+}
+.sync-badge:hover{border-color:rgba(201,168,76,0.4);}
+.sync-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background 0.3s,box-shadow 0.3s;}
+.sync-dot.idle   {background:var(--text3);}
+.sync-dot.syncing{background:var(--yellow);box-shadow:0 0 6px var(--yellow);animation:pulse 1s ease infinite;}
+.sync-dot.ok     {background:var(--green); box-shadow:0 0 6px var(--green);}
+.sync-dot.error  {background:var(--red);   box-shadow:0 0 6px var(--red);}
+.sync-dot.unset  {background:var(--gold);  box-shadow:0 0 6px var(--gold-glow);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.sync-label{color:var(--text2);}
+
+/* info box inside settings modal */
+.info-box{
+  background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.18);
+  border-radius:8px;padding:10px 14px;font-size:0.8rem;
+  color:var(--text2);line-height:1.6;
+}
+.info-box strong{color:var(--gold);}
+.info-box code{
+  font-family:'JetBrains Mono',monospace;font-size:0.76rem;
+  background:rgba(255,255,255,0.06);border-radius:3px;padding:1px 5px;
+  color:var(--gold-lt);
+}
+.info-box a{color:var(--gold-lt);text-decoration:underline;text-underline-offset:2px;}
+
+/* ===== MODAL ===== */
+.overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,0.82);backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;padding:1.5rem;
+  animation:fadeIn 0.2s ease;
+}
+.modal{
+  background:var(--card);border:1px solid var(--border2);border-radius:18px;
+  width:100%;max-width:555px;overflow:hidden;
+  box-shadow:0 40px 100px rgba(0,0,0,0.7),0 0 0 1px rgba(201,168,76,0.06);
+  animation:slideUp 0.28s ease;
+}
+.mhdr{
+  padding:1.4rem 1.8rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(180deg,rgba(201,168,76,0.05) 0%,transparent 100%);
+}
+.mtitle{font-family:'Playfair Display',serif;font-size:1.25rem;font-weight:700;}
+.mtitle span{color:var(--gold-lt);}
+.mclose{background:none;border:none;color:var(--text3);cursor:pointer;font-size:1.2rem;padding:0;transition:color 0.15s;}
+.mclose:hover{color:var(--text);}
+.mbody{padding:1.5rem 1.8rem;display:flex;flex-direction:column;gap:1rem;}
+.f2col{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.fg{display:flex;flex-direction:column;gap:5px;}
+.fg label{font-size:0.62rem;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);font-weight:600;}
+.fi{
+  background:var(--card2);border:1px solid var(--border);border-radius:7px;
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:0.87rem;
+  padding:10px 13px;outline:none;width:100%;
+  transition:border-color 0.15s,background 0.15s;
+}
+.fi:focus{border-color:rgba(201,168,76,0.45);background:var(--gold-dim);}
+.fi::placeholder{color:var(--text3);}
+textarea.fi{font-family:'DM Sans',sans-serif;font-size:0.84rem;resize:vertical;min-height:70px;line-height:1.5;}
+.mftr{
+  padding:1rem 1.8rem;border-top:1px solid var(--border);
+  display:flex;justify-content:flex-end;gap:8px;background:rgba(0,0,0,0.12);
+}
+
+/* ===== TOASTS ===== */
+.toasts{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.toast{
+  background:var(--card2);border:1px solid var(--border2);border-radius:9px;
+  padding:10px 16px;font-size:0.82rem;
+  box-shadow:0 8px 30px rgba(0,0,0,0.5);
+  animation:slideInR 0.3s ease,fadeOut 0.35s ease 2.8s forwards;
+  border-left:3px solid var(--gold);min-width:220px;
+}
+.toast.success{border-left-color:var(--green);}
+.toast.error{border-left-color:var(--red);}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideInR{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+@keyframes fadeOut{from{opacity:1}to{opacity:0}}
+
+/* ===== PAGE FOOTER ===== */
+.page-footer {
+  max-width:1480px;margin:2.5rem auto 0;padding:1.2rem 2rem;
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:1rem;
+  position:relative;z-index:1;
+}
+.footer-left {
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.65rem;color:var(--text3);letter-spacing:1px;
+}
+.footer-right {display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:var(--gold-dk);}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-emblem">🔧</div>
+      <div class="logo-words">
+        <div class="logo-eyebrow">Est. 2025</div>
+        <div class="logo-name">Shamith's <em>Garage</em></div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="hdr-pill">Fleet <strong id="hT">0</strong></div>
+      <div class="hdr-pill"><span class="dot" style="background:var(--green);box-shadow:0 0 5px var(--green)"></span> OK <strong id="hO" style="color:var(--green)">0</strong></div>
+      <div class="hdr-pill"><span class="dot" style="background:var(--yellow);box-shadow:0 0 5px var(--yellow)"></span> Soon <strong id="hW" style="color:var(--yellow)">0</strong></div>
+      <div class="hdr-pill"><span class="dot" style="background:var(--red);box-shadow:0 0 5px var(--red)"></span> Due <strong id="hD" style="color:var(--red)">0</strong></div>
+      <div class="sync-badge" id="syncBadge" onclick="openGistSettings()" title="JSONbin cloud sync status">
+        <div class="sync-dot unset" id="syncDot"></div>
+        <span class="sync-label" id="syncLabel">Cloud sync</span>
+      </div>
+      <button class="btn btn-gold" onclick="openModal()">＋ Add Vehicle</button>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main>
+  <div class="page-top">
+    <div>
+      <div class="page-eyebrow">Fleet Overview</div>
+      <div class="page-title">My Vehicles</div>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="scard" style="--sc-color:var(--gold)">
+      <div class="scard-num" id="sT">0</div>
+      <div class="scard-lbl">Total Vehicles</div>
+    </div>
+    <div class="scard" style="--sc-color:var(--green)">
+      <div class="scard-num" id="sO" style="color:var(--green)">0</div>
+      <div class="scard-lbl">Services OK</div>
+    </div>
+    <div class="scard" style="--sc-color:var(--yellow)">
+      <div class="scard-num" id="sW" style="color:var(--yellow)">0</div>
+      <div class="scard-lbl">Due Soon</div>
+    </div>
+    <div class="scard" style="--sc-color:var(--red)">
+      <div class="scard-num" id="sD" style="color:var(--red)">0</div>
+      <div class="scard-lbl">Overdue</div>
+    </div>
+  </div>
+
+  <div id="root"></div>
+</main>
+
+<!-- PAGE FOOTER -->
+<footer>
+  <div class="page-footer">
+    <div class="footer-left">Shamith's Garage &nbsp;·&nbsp; Auto-synced via JSONbin</div>
+    <div class="footer-right">
+      <label class="btn btn-ghost btn-sm" style="cursor:pointer">
+        📂 Import JSON
+        <input type="file" accept=".json" id="importFile" style="display:none" onchange="importData(event)">
+      </label>
+      <button class="btn btn-ghost btn-sm" onclick="exportData()">💾 Export JSON</button>
+    </div>
+  </div>
+</footer>
+
+<!-- ADD VEHICLE MODAL -->
+<div id="addModal" class="overlay" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="mhdr">
+      <div class="mtitle">Add <span>New Vehicle</span></div>
+      <button class="mclose" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="f2col">
+        <div class="fg"><label>Year</label><input class="fi" id="iYear" placeholder="2022" type="number" min="1900" max="2030"></div>
+        <div class="fg"><label>Color</label><input class="fi" id="iColor" placeholder="Pearl White"></div>
+      </div>
+      <div class="f2col">
+        <div class="fg"><label>Make ✦</label><input class="fi" id="iMake" placeholder="Toyota"></div>
+        <div class="fg"><label>Model ✦</label><input class="fi" id="iModel" placeholder="Camry"></div>
+      </div>
+      <div class="f2col">
+        <div class="fg"><label>Current Mileage</label><input class="fi" id="iMiles" placeholder="42,000 mi"></div>
+        <div class="fg"><label>License Plate</label><input class="fi" id="iPlate" placeholder="ABC-1234"></div>
+      </div>
+      <div class="fg"><label>VIN (optional)</label><input class="fi" id="iVin" placeholder="1HGBH41JXMN109186"></div>
+      <div class="fg"><label>Initial Notes</label><textarea class="fi" id="iNotes" placeholder="Purchase date, warranty info, quirks…"></textarea></div>
+    </div>
+    <div class="mftr">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="addCar()">Add Vehicle</button>
+    </div>
+  </div>
+</div>
+
+<!-- JSONBIN INFO MODAL -->
+<div id="syncModal" class="overlay" style="display:none" onclick="if(event.target===this)closeSyncModal()">
+  <div class="modal">
+    <div class="mhdr">
+      <div class="mtitle">JSONbin <span>Cloud Sync</span></div>
+      <button class="mclose" onclick="closeSyncModal()">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="info-box">
+        <strong>Auto-sync is active.</strong> Your garage data is stored in a private JSONbin and pushed automatically 1.5 s after every change. Open this file on any device and your data loads instantly.<br><br>
+        <strong>Bin ID:</strong> <code id="modalBinId">—</code><br>
+        <strong>Last sync:</strong> <span id="modalLastSync">—</span>
+      </div>
+      <div id="syncModalStatus" style="font-size:0.78rem;color:var(--text3);font-family:'JetBrains Mono',monospace;min-height:18px;"></div>
+    </div>
+    <div class="mftr">
+      <button class="btn btn-ghost btn-sm" onclick="syncNow()">↻ Sync Now</button>
+      <button class="btn btn-ghost btn-sm" onclick="resetBin()" style="color:var(--red);border-color:rgba(248,113,113,0.3)">Reset Bin</button>
+      <button class="btn btn-gold" onclick="closeSyncModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toastBox"></div>
+
+<script>
+// ────────────────────────────────────────
+// DATA
+// ────────────────────────────────────────
+const DEF_SVCS = [
+  {name:'Oil Change',       lastDate:'',lastMiles:'',dueDate:'',status:'green'},
+  {name:'Tire Rotation',    lastDate:'',lastMiles:'',dueDate:'',status:'green'},
+  {name:'Brake Inspection', lastDate:'',lastMiles:'',dueDate:'',status:'green'},
+  {name:'Air Filter',       lastDate:'',lastMiles:'',dueDate:'',status:'green'},
+  {name:'Battery Check',    lastDate:'',lastMiles:'',dueDate:'',status:'green'},
+  {name:'Registration',     lastDate:'',lastMiles:'',dueDate:'',status:'green'},
+  {name:'Insurance Renewal',lastDate:'',lastMiles:'',dueDate:'',status:'green'},
+];
+
+let fleet = [];
+
+// ────────────────────────────────────────
+// STORAGE — localStorage + JSONbin cloud sync
+// ────────────────────────────────────────
+const LS_KEY    = 'shamith_garage';
+const LS_BIN    = 'shamith_bin_id';
+const MASTER_KEY = '$2a$10$GIDIVebVODnkHZGRNDRnvuOjhqtWkJz9j4psF/Ol49/f94ew4xxU6';
+const ACCESS_KEY = '$2a$10$d75Vyw795BnWVa.NSLRvxexhD8ikNNpCY8jYfnXWqmhb6XzF.PG9y';
+const BIN_ID     = '69cd1b9d36566621a86c6a4f';
+const BASE_URL   = 'https://api.jsonbin.io/v3/b';
+
+let syncTimer     = null;
+let lastPushed    = '';
+let lastSyncTime  = null;
+
+function getBinId()      { return BIN_ID; }
+function setBinId(id)    { localStorage.setItem(LS_BIN, id); }
+
+// ── Sync status UI ──
+function setSyncUI(state, label) {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  if (dot) dot.className = 'sync-dot ' + state;
+  if (lbl) lbl.textContent = label;
+}
+
+// ── Local load/save ──
+function load() {
+  try { const s = localStorage.getItem(LS_KEY); if (s) fleet = JSON.parse(s); }
+  catch { fleet = []; }
+}
+function save() {
+  localStorage.setItem(LS_KEY, JSON.stringify(fleet));
+  schedulePush();
+}
+
+// ── Debounced push (1.5 s after last change) ──
+function schedulePush() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushToBin, 1500);
+}
+
+// ── Push fleet → JSONbin ──
+async function pushToBin() {
+  const content = JSON.stringify(fleet);
+  if (content === lastPushed) return;
+  setSyncUI('syncing', 'Syncing…');
+  try {
+    const res = await fetch(`${BASE_URL}/${BIN_ID}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': MASTER_KEY,
+        'X-Access-Key': ACCESS_KEY
+      },
+      body: content
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || res.status);
+    lastPushed   = content;
+    lastSyncTime = new Date();
+    setSyncUI('ok', 'Synced ✓');
+    setTimeout(() => setSyncUI('ok', 'Cloud ✓'), 2500);
+  } catch (err) {
+    setSyncUI('error', 'Sync failed');
+    console.error('JSONbin push error:', err);
+  }
+}
+
+// ── Pull fleet ← JSONbin ──
+async function pullFromBin() {
+  setSyncUI('syncing', 'Loading…');
+  try {
+    const res = await fetch(`${BASE_URL}/${BIN_ID}/latest`, {
+      headers: {
+        'X-Master-Key': MASTER_KEY,
+        'X-Access-Key': ACCESS_KEY
+      }
+    });
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    const remote = data.record;
+    if (!Array.isArray(remote)) throw new Error('Unexpected format');
+    fleet = remote;
+    localStorage.setItem(LS_KEY, JSON.stringify(fleet));
+    lastPushed   = JSON.stringify(fleet);
+    lastSyncTime = new Date();
+    setSyncUI('ok', 'Cloud ✓');
+    return true;
+  } catch (err) {
+    setSyncUI('error', 'Pull failed');
+    console.error('JSONbin pull error:', err);
+    return false;
+  }
+}
+
+// ── Sync info modal ──
+function openGistSettings() {
+  const binId = getBinId();
+  const binEl = document.getElementById('modalBinId');
+  const tsEl  = document.getElementById('modalLastSync');
+  const stEl  = document.getElementById('syncModalStatus');
+  if (binEl) binEl.textContent = binId || 'Not created yet — will be auto-created on first save';
+  if (tsEl)  tsEl.textContent  = lastSyncTime ? lastSyncTime.toLocaleString() : 'Never';
+  if (stEl)  stEl.textContent  = '';
+  document.getElementById('syncModal').style.display = 'flex';
+}
+function closeSyncModal()   { document.getElementById('syncModal').style.display = 'none'; }
+function closeGistSettings(){ closeSyncModal(); }  // alias kept for keydown handler
+
+async function syncNow() {
+  const stEl = document.getElementById('syncModalStatus');
+  if (stEl) { stEl.textContent = 'Pushing…'; stEl.style.color = 'var(--yellow)'; }
+  await pushToBin();
+  if (stEl) {
+    stEl.textContent = lastSyncTime ? `✓ Synced at ${lastSyncTime.toLocaleTimeString()}` : '✗ Sync failed';
+    stEl.style.color = lastSyncTime ? 'var(--green)' : 'var(--red)';
+    // Refresh the last sync display
+    const tsEl = document.getElementById('modalLastSync');
+    if (tsEl && lastSyncTime) tsEl.textContent = lastSyncTime.toLocaleString();
+  }
+}
+
+function resetBin() {
+  if (!confirm('Delete the saved Bin ID? A new bin will be created on next save.\n\nYour local data is NOT deleted.')) return;
+  localStorage.removeItem(LS_BIN);
+  lastPushed = '';
+  setSyncUI('unset', 'Cloud ✓');
+  closeSyncModal();
+  toast('Bin ID cleared — will create a new bin on next change');
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(fleet, null, 2)], { type: 'application/json' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'shamith-garage.json' });
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('Exported → shamith-garage.json', 'success');
+}
+function importData(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (!Array.isArray(d)) throw 0;
+      fleet = d; save(); renderAll();
+      toast(`Loaded ${fleet.length} vehicle(s)`, 'success');
+    } catch { toast('Invalid JSON file', 'error'); }
+  };
+  r.readAsText(f); e.target.value = '';
+}
+
+// ────────────────────────────────────────
+// TO-DO CRUD
+// ────────────────────────────────────────
+function addTodo(id) {
+  const inp = document.getElementById(`todoinp-${id}`);
+  const text = (inp?.value || '').trim();
+  if (!text) return;
+  const c = gc(id); if (!c) return;
+  if (!c.todos) c.todos = [];
+  c.todos.push({ text, done: false, id: Date.now() });
+  inp.value = '';
+  touch(id); renderTodos(id);
+}
+function toggleTodo(id, ti) {
+  const c = gc(id); if (!c) return;
+  c.todos[ti].done = !c.todos[ti].done;
+  touch(id); renderTodos(id);
+}
+function editTodo(id, ti, val) {
+  const c = gc(id); if (!c) return;
+  c.todos[ti].text = val; touch(id);
+}
+function delTodo(id, ti) {
+  const c = gc(id); if (!c || !c.todos) return;
+  c.todos.splice(ti, 1); touch(id); renderTodos(id);
+}
+
+function renderTodos(id) {
+  const c = gc(id); if (!c) return;
+  const todos = c.todos || [];
+  const el = document.getElementById(`todos-${id}`); if (!el) return;
+  const done = todos.filter(t => t.done).length;
+  const pct  = todos.length ? Math.round((done / todos.length) * 100) : 0;
+  const prog = document.getElementById(`todoprog-${id}`);
+  const cnt  = document.getElementById(`todocnt-${id}`);
+  if (prog) prog.style.width = pct + '%';
+  if (cnt)  cnt.textContent  = todos.length ? `${done}/${todos.length} done` : 'No items';
+  el.innerHTML = todos.map((t, i) => `
+    <div class="todo-item${t.done ? ' done' : ''}">
+      <input type="checkbox" class="todo-cb" ${t.done ? 'checked' : ''}
+        onchange="toggleTodo(${id}, ${i})">
+      <input class="todo-text" value="${esc(t.text)}" placeholder="Task…"
+        onchange="editTodo(${id}, ${i}, this.value)">
+      <button class="todo-del" onclick="delTodo(${id}, ${i})" title="Remove">✕</button>
+    </div>`).join('');
+}
+
+// ────────────────────────────────────────
+// CRUD
+// ────────────────────────────────────────
+const gc = id => fleet.find(c=>c.id===id);
+function touch(id){
+  const c=gc(id);if(!c)return;
+  c.updated=new Date().toISOString();save();
+  const el=document.getElementById(`ts-${id}`);
+  if(el)el.textContent=`Updated ${fmt(c.updated)}`;
+  updateStats();
+}
+
+function addCar(){
+  const make=gv('iMake'), model=gv('iModel');
+  if(!make||!model){toast('Make and Model are required','error');return;}
+  const car={
+    id:Date.now(),
+    year:gv('iYear'),make,model,
+    color:gv('iColor'),mileage:gv('iMiles'),
+    plate:gv('iPlate'),vin:gv('iVin'),
+    notes:gv('iNotes'),
+    services:JSON.parse(JSON.stringify(DEF_SVCS)),
+    todos:[],comments:'',updated:new Date().toISOString(),
+  };
+  fleet.push(car);save();closeModal();renderAll();
+  toast(`${[car.year,car.make,car.model].filter(Boolean).join(' ')} added`,'success');
+}
+
+function removeCar(id){
+  if(!confirm('Remove this vehicle?'))return;
+  fleet=fleet.filter(c=>c.id!==id);save();renderAll();
+  toast('Vehicle removed');
+}
+
+function setField(id,key,val){const c=gc(id);if(c){c[key]=val;touch(id);}}
+function setSvcField(id,si,key,val){
+  const c=gc(id);if(!c)return;
+  c.services[si][key]=val;
+  // Auto-set status on due date
+  if(key==='dueDate'&&val){
+    const d=new Date(val),now=new Date();now.setHours(0,0,0,0);
+    const diff=(d-now)/(864e5);
+    if(diff<0) c.services[si].status='red';
+    else if(diff<=30&&c.services[si].status==='green') c.services[si].status='yellow';
+    renderSvcs(id);
+  }
+  touch(id);
+}
+function cycleSvcStatus(id,si){
+  const c=gc(id);if(!c)return;
+  const s=['green','yellow','red'],cur=c.services[si].status||'green';
+  c.services[si].status=s[(s.indexOf(cur)+1)%3];
+  touch(id);renderSvcs(id);
+}
+function addSvc(id){
+  const c=gc(id);if(!c)return;
+  c.services.push({name:'New Service',lastDate:'',lastMiles:'',dueDate:'',status:'green'});
+  touch(id);renderSvcs(id);
+}
+function delSvc(id,si){
+  const c=gc(id);if(!c||c.services.length<2)return;
+  c.services.splice(si,1);touch(id);renderSvcs(id);
+}
+
+// ────────────────────────────────────────
+// RENDER SERVICES
+// ────────────────────────────────────────
+function renderSvcs(id){
+  const c=gc(id);if(!c)return;
+  const el=document.getElementById(`svcs-${id}`);if(!el)return;
+  el.innerHTML=c.services.map((s,i)=>{
+    const st=s.status||'green';
+    const lbl=st==='green'?'OK':st==='yellow'?'SOON':'OVERDUE';
+    const isDue=s.dueDate&&new Date(s.dueDate)<new Date();
+    return `
+    <div class="svc-item s-${st}">
+      <div class="svc-row1">
+        <button class="svc-pill p-${st}" onclick="cycleSvcStatus(${id},${i})" title="Click to change status">${lbl}</button>
+        <input class="svc-name-inp" value="${esc(s.name)}" placeholder="Service name"
+          onchange="setSvcField(${id},${i},'name',this.value)" title="Click to rename">
+        <button class="svc-del" onclick="delSvc(${id},${i})" title="Remove">✕</button>
+      </div>
+      <div class="svc-row2">
+        <div class="svc-f">
+          <div class="svc-f-lbl">📅 Last Done</div>
+          <input class="svc-inp" type="date" value="${s.lastDate||''}"
+            onchange="setSvcField(${id},${i},'lastDate',this.value)">
+        </div>
+        <div class="svc-f">
+          <div class="svc-f-lbl">⊙ At Miles</div>
+          <input class="svc-inp" type="text" value="${esc(s.lastMiles)}"
+            placeholder="e.g. 42,000"
+            onchange="setSvcField(${id},${i},'lastMiles',this.value)">
+        </div>
+        <div class="svc-f">
+          <div class="svc-f-lbl">⏰ Due Date</div>
+          <input class="svc-inp ${isDue?'overdue':''}" type="date" value="${s.dueDate||''}"
+            onchange="setSvcField(${id},${i},'dueDate',this.value)">
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ────────────────────────────────────────
+// RENDER CARDS
+// ────────────────────────────────────────
+function cardHTML(car){
+  const name = [car.make, car.model].filter(Boolean).join(' ') || 'Unnamed Vehicle';
+  return `
+  <div class="car-card" id="card-${car.id}">
+
+    <!-- ── HEADER ── -->
+    <div class="card-hero">
+      ${car.year ? `<div class="car-year-badge">${esc(car.year)}</div>` : ''}
+      <div class="car-title">${esc(name)}</div>
+      ${car.color ? `<div class="car-subtitle">${esc(car.color)}</div>` : ''}
+      ${car.vin   ? `<div class="car-subtitle" style="font-size:0.6rem;opacity:0.45">VIN ${esc(car.vin)}</div>` : ''}
+      ${car.plate ? `<div class="plate-tag">${esc(car.plate)}</div>` : ''}
+    </div>
+
+    <div class="cbody">
+      <div class="qinfo">
+        <div class="qi">
+          <div class="qi-lbl">Mileage</div>
+          <input class="qi-inp" value="${esc(car.mileage)}" placeholder="—"
+            onchange="setField(${car.id},'mileage',this.value)">
+        </div>
+        <div class="qi">
+          <div class="qi-lbl">Plate</div>
+          <input class="qi-inp" value="${esc(car.plate)}" placeholder="—"
+            onchange="setField(${car.id},'plate',this.value)">
+        </div>
+        <div class="qi">
+          <div class="qi-lbl">Color</div>
+          <input class="qi-inp" value="${esc(car.color)}" placeholder="—"
+            onchange="setField(${car.id},'color',this.value)">
+        </div>
+      </div>
+
+      <div class="gdiv"></div>
+
+      <div class="svc-hdr">
+        <div class="svc-ttl">Service Records</div>
+        <button class="add-svc-btn" onclick="addSvc(${car.id})">＋ Add Service</button>
+      </div>
+      <div class="svc-list" id="svcs-${car.id}"></div>
+
+      <div class="gdiv"></div>
+
+      <!-- To-Do List -->
+      <div class="todo-section">
+        <div class="todo-ttl">
+          <div class="todo-ttl-left">To-Do List</div>
+        </div>
+        <div class="todo-progress">
+          <div class="todo-bar-wrap"><div class="todo-bar" id="todoprog-${car.id}" style="width:0%"></div></div>
+          <span class="todo-count" id="todocnt-${car.id}">No items</span>
+        </div>
+        <div class="todo-list" id="todos-${car.id}"></div>
+        <div class="todo-add-row">
+          <input class="todo-new-inp" id="todoinp-${car.id}" placeholder="Add a task…"
+            onkeydown="if(event.key==='Enter')addTodo(${car.id})">
+          <button class="todo-add-btn" onclick="addTodo(${car.id})">＋ Add</button>
+        </div>
+      </div>
+
+      <div class="gdiv"></div>
+
+      <div class="notes-section">
+        <div class="notes-ttl">Notes &amp; Comments</div>
+        <textarea class="notes-ta"
+          placeholder="Service history, reminders, receipts, warranty info…"
+          onchange="setField(${car.id},'comments',this.value)">${esc(car.comments||'')}</textarea>
+      </div>
+    </div>
+
+    <div class="cfooter">
+      <span class="ts" id="ts-${car.id}">Updated ${fmt(car.updated)}</span>
+      <button class="btn btn-danger btn-sm" onclick="removeCar(${car.id})">Remove</button>
+    </div>
+  </div>`;
+}
+
+function renderAll(){
+  const root=document.getElementById('root');
+  if(!fleet.length){
+    root.innerHTML=`
+      <div class="empty-wrap">
+        <div class="empty-icon">🏎️</div>
+        <h2>Your Garage Is Empty</h2>
+        <p>Add your first vehicle to begin tracking service and maintenance.</p>
+        <button class="btn btn-gold" onclick="openModal()">＋ Add Your First Vehicle</button>
+      </div>`;
+    updateStats();return;
+  }
+  root.innerHTML=`<div class="cars-grid">${fleet.map(cardHTML).join('')}</div>`;
+  fleet.forEach(car=>{
+    renderSvcs(car.id);
+    renderTodos(car.id);
+  });
+  updateStats();
+}
+
+// ────────────────────────────────────────
+// STATS
+// ────────────────────────────────────────
+function updateStats(){
+  let ok=0,warn=0,over=0;
+  fleet.forEach(c=>c.services.forEach(s=>{
+    if(s.status==='green')ok++;
+    else if(s.status==='yellow')warn++;
+    else over++;
+  }));
+  const n=fleet.length;
+  [['sT','hT'],[n]].flat();
+  set('sT',n);set('hT',n);
+  set('sO',ok);set('hO',ok);
+  set('sW',warn);set('hW',warn);
+  set('sD',over);set('hD',over);
+}
+function set(id,val){const el=document.getElementById(id);if(el)el.textContent=val;}
+
+// ────────────────────────────────────────
+// MODAL
+// ────────────────────────────────────────
+function openModal(){
+  ['iYear','iMake','iModel','iColor','iMiles','iPlate','iVin','iNotes'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('addModal').style.display='flex';
+  setTimeout(()=>document.getElementById('iMake').focus(),60);
+}
+function closeModal(){ document.getElementById('addModal').style.display='none'; }
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+// ────────────────────────────────────────
+// TOAST
+// ────────────────────────────────────────
+function toast(msg,type=''){
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;el.textContent=msg;
+  document.getElementById('toastBox').appendChild(el);
+  setTimeout(()=>el.remove(),3500);
+}
+
+// ────────────────────────────────────────
+// UTILS
+// ────────────────────────────────────────
+function gv(id){return(document.getElementById(id)?.value||'').trim();}
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmt(iso){
+  if(!iso)return'—';
+  try{
+    const d=new Date(iso);
+    return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+
+      ' '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
+  }catch{return iso;}
+}
+
+// ────────────────────────────────────────
+// INIT
+// ────────────────────────────────────────
+load();
+setSyncUI('syncing', 'Loading…');
+renderAll();
+
+// Always pull latest from hardcoded bin on startup
+pullFromBin().then(ok => { if (ok) renderAll(); });
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closeSyncModal(); }
+});
+</script>
+</body>
+</html>
