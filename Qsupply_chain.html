@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantum Supply Chain Intelligence — Shamith P.</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#080c16;--bg2:#0e1422;--bg3:#161e30;--bg4:#1e2842;--a:#00e5ff;--a2:#7c4dff;--a3:#ff6d00;--a4:#00e676;--a5:#ff1744;--t:#dce4f0;--t2:#8a96ad;--t3:#556078;--bd:rgba(255,255,255,.06)}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);overflow:hidden;height:100vh;display:flex;flex-direction:column}
+
+header{height:52px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bd);background:rgba(8,12,22,.92);backdrop-filter:blur(12px);position:relative;z-index:600;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#d4a017,#f5c842,#c8902e);display:grid;place-items:center;font:700 13px/1 'JetBrains Mono';color:#1a1200;box-shadow:0 0 12px rgba(212,160,23,.3)}
+.logo h1{font-size:16px;font-weight:600;letter-spacing:-.3px}
+.logo h1 small{font-size:11px;color:var(--t3);font-family:'JetBrains Mono',monospace;letter-spacing:.5px;margin-left:6px;font-weight:400}
+.tabs{display:flex;gap:3px;overflow-x:auto}
+.tab{padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--t3);background:transparent;border:1px solid transparent;font-family:inherit;transition:.15s;white-space:nowrap}
+.tab:hover{color:var(--t);background:var(--bg3)}
+.tab.on{color:var(--a);border-color:rgba(0,229,255,.25);background:rgba(0,229,255,.06)}
+
+.kpis{display:flex;border-bottom:1px solid var(--bd);overflow-x:auto;flex-shrink:0}
+.kpi{flex:1;min-width:130px;padding:10px 16px;text-align:center;border-right:1px solid var(--bd)}
+.kpi:last-child{border:none}
+.kpi .v{font:700 20px/1.2 'JetBrains Mono',monospace}
+.kpi .l{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+
+.main{display:grid;grid-template-columns:280px 1fr 340px;flex:1;min-height:0}
+
+/* FOOTER */
+.footer{height:28px;display:flex;align-items:center;justify-content:center;border-top:1px solid var(--bd);background:rgba(8,12,22,.95);font-size:11px;color:var(--t3);gap:6px;flex-shrink:0}
+.footer a{color:var(--t2);text-decoration:none}
+.footer .gold{color:#d4a017;font-weight:600}
+
+/* LEFT SIDEBAR */
+.side{overflow-y:auto;border-right:1px solid var(--bd);display:flex;flex-direction:column;min-height:0}
+.side-hd{padding:10px 12px;border-bottom:1px solid var(--bd)}
+.side-hd input{width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--bd);background:var(--bg2);color:var(--t);font:13px 'DM Sans';outline:none}
+.side-hd input:focus{border-color:var(--a)}
+.chip-row{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.chip{padding:3px 9px;border-radius:12px;font-size:10px;cursor:pointer;border:1px solid var(--bd);color:var(--t3);transition:.12s}
+.chip.on{color:#fff}
+.elist{flex:1;overflow-y:auto;padding:4px 0}
+.ei{padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:12px;border-left:3px solid transparent;transition:.1s}
+.ei:hover{background:var(--bg3)}
+.ei.sel{background:var(--bg4);border-left-color:var(--a)}
+.ei .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ei .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.ei .fl{font-size:9px;padding:1px 4px;border-radius:3px;flex-shrink:0}
+.ei .xf{background:rgba(255,23,68,.12);color:var(--a5)}
+.ei .co{color:var(--t3);font-size:10px;flex-shrink:0}
+
+/* MAP */
+.map-wrap{position:relative;z-index:0;overflow:hidden}
+#map{width:100%;height:100%;background:#080c16}
+.leaflet-control-zoom{border:1px solid var(--bd)!important}
+.leaflet-control-zoom a{background:var(--bg3)!important;color:var(--t)!important;border-color:var(--bd)!important;font-size:16px!important}
+.leaflet-control-zoom a:hover{background:var(--bg4)!important;color:var(--a)!important}
+.leaflet-container{background:var(--bg)!important;font-family:'DM Sans'!important}
+.q-marker{border-radius:50%;border:2px solid;cursor:pointer;transition:.15s;box-shadow:0 0 8px rgba(0,0,0,.4)}
+.q-marker:hover{transform:scale(1.4);z-index:9999!important}
+.q-marker.export-ctrl{box-shadow:0 0 0 3px rgba(255,23,68,.35),0 0 12px rgba(255,23,68,.2)}
+.q-marker.selected{transform:scale(1.6);box-shadow:0 0 0 4px rgba(0,229,255,.4),0 0 20px rgba(0,229,255,.3);z-index:10000!important}
+.q-popup .leaflet-popup-content-wrapper{background:var(--bg4);color:var(--t);border:1px solid var(--bd);border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.q-popup .leaflet-popup-tip{background:var(--bg4);border:1px solid var(--bd)}
+.q-popup .leaflet-popup-content{margin:12px 16px;font:13px/1.5 'DM Sans'}
+.q-popup h3{font-size:15px;margin-bottom:2px}
+.q-popup .sub{font-size:11px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.q-popup .det{font-size:12px;color:var(--t2);line-height:1.6}
+.q-popup .xbadge{display:inline-block;padding:2px 8px;border-radius:4px;background:rgba(255,23,68,.12);color:var(--a5);font-size:11px;font-weight:600;margin-top:4px}
+
+/* FLOATING HOVER CARD */
+.hover-card{position:fixed;z-index:10000;pointer-events:none;display:none;min-width:260px;max-width:340px;background:rgba(14,20,34,.96);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px 18px;box-shadow:0 12px 48px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04) inset;font-family:'DM Sans',sans-serif;transition:opacity .15s}
+.hover-card.show{display:block;animation:hcFadeIn .15s ease-out}
+@keyframes hcFadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.hc-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.hc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px;box-shadow:0 0 8px var(--hc-color)}
+.hc-name{font-size:15px;font-weight:600;line-height:1.2}
+.hc-type{font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-top:2px;opacity:.7}
+.hc-divider{height:1px;background:rgba(255,255,255,.06);margin:8px 0}
+.hc-row{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:5px}
+.hc-row b{color:var(--t);font-weight:500}
+.hc-icon{font-size:13px;flex-shrink:0;width:18px;text-align:center;opacity:.6}
+.hc-links{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.hc-link{font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:var(--t2)}
+.hc-export{display:inline-flex;align-items:center;gap:4px;margin-top:6px;padding:4px 10px;border-radius:5px;background:rgba(255,23,68,.1);border:1px solid rgba(255,23,68,.2);color:#ff5252;font-size:11px;font-weight:600}
+
+.map-legend{position:absolute;bottom:14px;left:14px;z-index:500;background:rgba(8,12,22,.88);backdrop-filter:blur(8px);padding:8px 12px;border-radius:8px;border:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:8px}
+.ml{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2)}
+.ml i{width:8px;height:8px;border-radius:50%;display:inline-block}
+
+/* RIGHT PANEL */
+.rp{overflow-y:auto;border-left:1px solid var(--bd);min-height:0}
+.card{padding:14px 16px;border-bottom:1px solid var(--bd)}
+.card-t{font-size:14px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.badge{font-size:9px;padding:2px 7px;border-radius:3px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.b-c{background:rgba(255,23,68,.1);color:var(--a5)}.b-w{background:rgba(255,109,0,.1);color:var(--a3)}.b-i{background:rgba(0,229,255,.1);color:var(--a)}.b-x{background:rgba(255,23,68,.15);color:var(--a5)}
+.card-b{font-size:13px;color:var(--t2);line-height:1.65}
+table.bom{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+table.bom th{text-align:left;padding:5px 6px;border-bottom:1px solid var(--bd);color:var(--t3);text-transform:uppercase;font-size:9px;letter-spacing:.6px;font-weight:600}
+table.bom td{padding:5px 6px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--t2);vertical-align:top}
+table.bom tr:hover td{background:var(--bg3);color:var(--t)}
+.bom .cat{color:var(--a);font-weight:600}
+.bom .pri{color:var(--t);font-weight:500}
+.bom .sec{color:var(--t3);font-size:10px;font-style:italic;display:block;margin-top:1px}
+.bom .xctl{color:var(--a5);font-size:10px;font-weight:600}
+.stat{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px}
+.stat:last-child{border:none}
+.stat .sl{color:var(--t2)}.stat .sv{font:600 12px 'JetBrains Mono',monospace}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px}
+
+/* ============ MOBILE RESPONSIVE ============ */
+@media(max-width:1024px){
+  body{overflow-y:auto;height:auto;min-height:100vh}
+  
+  header{height:auto;min-height:48px;padding:8px 12px;flex-wrap:wrap;gap:8px}
+  .logo h1{font-size:14px}
+  .logo h1 small{display:none}
+  .tabs{width:100%;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .tab{padding:5px 10px;font-size:11px;flex-shrink:0}
+  
+  .kpis{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-shrink:0}
+  .kpi{min-width:110px;padding:8px 10px}
+  .kpi .v{font-size:16px}
+  .kpi .l{font-size:8px}
+  
+  .main{display:flex;flex-direction:column;flex:none;height:auto}
+  
+  /* MAP FIRST on mobile */
+  .map-wrap{order:-1;height:60vh;min-height:360px;width:100%;border-bottom:1px solid var(--bd)}
+  .map-legend{bottom:6px;left:6px;padding:5px 8px;gap:5px;max-width:calc(100% - 80px);overflow-x:auto;flex-wrap:nowrap}
+  .ml{font-size:8px;white-space:nowrap}
+  
+  /* Sidebar below map */
+  .side{order:0;border-right:none;border-bottom:1px solid var(--bd);max-height:50vh;width:100%}
+  .elist{max-height:300px}
+  
+  /* Right panel last, full scroll */
+  .rp{order:1;border-left:none;width:100%;overflow-y:visible}
+  
+  /* Cards more compact on mobile */
+  .card{padding:12px}
+  .card-t{font-size:13px}
+  .card-b{font-size:12px}
+  table.bom{font-size:10px}
+  table.bom .sec{font-size:9px}
+  
+  /* Hover card adjustments */
+  .hover-card{max-width:280px;min-width:200px}
+  .hc-name{font-size:13px}
+  
+  .footer{height:auto;padding:8px 12px;flex-wrap:wrap;text-align:center}
+}
+
+@media(max-width:600px){
+  header{padding:6px 10px}
+  .logo-mark{width:24px;height:24px;font-size:11px;border-radius:5px}
+  .logo h1{font-size:13px}
+  .tabs{gap:2px}
+  .tab{padding:4px 8px;font-size:10px}
+  
+  .kpi{min-width:90px;padding:6px 8px}
+  .kpi .v{font-size:14px}
+  .kpi .l{font-size:7px;letter-spacing:.5px}
+  
+  .map-wrap{height:55vh;min-height:300px}
+  .map-legend{display:none}
+  
+  .side-hd{padding:8px 10px}
+  .chip{font-size:9px;padding:2px 6px}
+  .ei{padding:5px 8px;font-size:11px}
+  
+  .card{padding:10px}
+  .card-t{font-size:12px}
+  .card-b{font-size:11px;line-height:1.5}
+  table.bom{font-size:9px}
+  table.bom th{font-size:7px;padding:3px 4px}
+  table.bom td{padding:3px 4px}
+  
+  .hover-card{max-width:240px;min-width:180px;padding:10px 12px}
+  .hc-name{font-size:12px}
+  .hc-row{font-size:11px}
+  .hc-link{font-size:9px}
+  
+  .stat{font-size:11px}
+  .footer{font-size:10px}
+}
+</style>
+</head>
+<body>
+
+<div class="hover-card" id="hoverCard"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">Q</div>
+    <h1><em style="color:#f5c842;font-style:italic">Quantum</em> Supply Chain Intelligence<small>APRIL 2026</small></h1>
+  </div>
+  <div class="tabs" id="tabs"></div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><div class="v" style="color:var(--a)" id="kpiCount">—</div><div class="l">Mapped Entities</div></div>
+  <div class="kpi"><div class="v" style="color:var(--a4)">$42.3B</div><div class="l">Global Investment</div></div>
+  <div class="kpi"><div class="v" style="color:var(--a5)">12</div><div class="l">ECCN Controls</div></div>
+  <div class="kpi"><div class="v" style="color:var(--a3)">38</div><div class="l">HS Codes Tracked</div></div>
+  <div class="kpi"><div class="v" style="color:var(--a2)">3+5</div><div class="l">DR Suppliers (NATO + Other)</div></div>
+  <div class="kpi"><div class="v" style="color:#e040fb">$2.58B</div><div class="l">QKD Market 2030</div></div>
+</div>
+
+<div class="main">
+  <div class="side">
+    <div class="side-hd">
+      <input id="search" placeholder="Search entities..." oninput="renderList()">
+      <div class="chip-row" id="chips"></div>
+    </div>
+    <div class="elist" id="elist"></div>
+  </div>
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="map-legend" id="mapLegend"></div>
+  </div>
+  <div class="rp" id="rp"></div>
+</div>
+
+<div class="footer">
+  <span>Created by</span><span class="gold">Shamith P.</span><span>·</span><span><em style="color:#f5c842;font-style:italic">Quantum</em> Supply Chain Intelligence</span><span>·</span><span>2026</span>
+</div>
+
+<script>
+// ============ COLORS & LABELS ============
+const CC={computing:'#00b8d4',sensing:'#ff9100',communication:'#e040fb',cryogenics:'#80deea',lasers:'#ea80fc',control:'#69f0ae',rf:'#ffab91',vacuum:'#ce93d8',detectors:'#fff176',materials:'#a5d6a7',minerals:'#ffd600'};
+const CL={computing:'Computing',sensing:'Sensing',communication:'Comms / QKD',cryogenics:'Cryogenics',lasers:'Lasers & Optics',control:'Control Electronics',rf:'RF & Microwave',vacuum:'Vacuum / UHV',detectors:'Detectors',materials:'Materials & Fab',minerals:'Critical Minerals'};
+const XL={'us-eccn':'US ECCN Controlled','eu-dual':'EU Dual-Use 500','bis-entity':'BIS Entity List','cn-export':'China Export Ctrl'};
+
+// ============ ENTITY DATA (192) ============
+const D=[
+// COMPUTING
+{n:"IBM Quantum",c:"computing",s:"SC QPU · Heron / Condor",la:41.21,lo:-73.80,ci:"Yorktown Heights, NY",co:"US",cn:["Bluefors","Zurich Instruments","Keysight","XMA Corp","Low Noise Factory","Delft Circuits"],x:"us-eccn"},
+{n:"Google Quantum AI",c:"computing",s:"SC QPU · Willow 105q",la:34.42,lo:-119.69,ci:"Santa Barbara, CA",co:"US",cn:["Bluefors","Keysight","Coherent Corp","Silent Waves"],x:"us-eccn"},
+{n:"Rigetti Computing",c:"computing",s:"SC QPU · Ankaa-3",la:37.87,lo:-122.27,ci:"Berkeley, CA",co:"US",cn:["Bluefors","Keysight","Riverlane"],x:"us-eccn"},
+{n:"IonQ",c:"computing",s:"Trapped Ion · Forte",la:38.99,lo:-76.93,ci:"College Park, MD",co:"US",cn:["TOPTICA Photonics","Coherent Corp","Kimball Physics","SAES Getters","Hamamatsu Photonics","Pfeiffer Vacuum"],x:"us-eccn"},
+{n:"Quantinuum",c:"computing",s:"Trapped Ion · H2-1",la:39.92,lo:-105.09,ci:"Broomfield, CO",co:"US",cn:["TOPTICA Photonics","M Squared Lasers","Keysight","Kimball Physics","AA Opto-Electronic","SAES Getters","Pfeiffer Vacuum"],x:"us-eccn"},
+{n:"D-Wave Systems",c:"computing",s:"Quantum Annealing · Advantage2",la:49.25,lo:-122.98,ci:"Burnaby, BC",co:"CA",cn:["Bluefors","Keysight","Low Noise Factory"]},
+{n:"PsiQuantum",c:"computing",s:"Photonic · Si Photonic",la:37.44,lo:-122.14,ci:"Palo Alto, CA",co:"US",cn:["GlobalFoundries","Lumentum","Single Quantum","Photon Spot"]},
+{n:"QuEra Computing",c:"computing",s:"Neutral Atom · 256q Aquila",la:42.36,lo:-71.06,ci:"Boston, MA",co:"US",cn:["TOPTICA Photonics","Menlo Systems","AA Opto-Electronic","Thorlabs","Hamamatsu Photonics"]},
+{n:"Intel Quantum",c:"computing",s:"Si Spin · Tunnel Falls 12q",la:45.54,lo:-122.87,ci:"Hillsboro, OR",co:"US",cn:["IMEC","Bluefors","QDevil (Quantum Machines)"]},
+{n:"Xanadu",c:"computing",s:"Photonic · Borealis",la:43.65,lo:-79.38,ci:"Toronto, ON",co:"CA",cn:["Lumentum","Single Quantum","LiGenTec"]},
+{n:"Diraq",c:"computing",s:"CMOS Si Spin",la:-33.87,lo:151.21,ci:"Sydney",co:"AU",cn:["IMEC","Bluefors","QDevil (Quantum Machines)"]},
+{n:"IQM Quantum",c:"computing",s:"SC QPU · Finland",la:60.21,lo:24.66,ci:"Espoo",co:"FI",cn:["Bluefors","Zurich Instruments","Delft Circuits"]},
+{n:"Origin Quantum",c:"computing",s:"SC + Photonic · China",la:31.82,lo:117.23,ci:"Hefei",co:"CN",cn:[],x:"bis-entity"},
+{n:"Alice & Bob",c:"computing",s:"Cat Qubit · Paris",la:48.86,lo:2.35,ci:"Paris",co:"FR",cn:["Bluefors","Zurich Instruments","Quantum Machines","Delft Circuits","XMA Corp"]},
+{n:"SEEQC",c:"computing",s:"SFQ Cryo-Control · $1B SPAC",la:41.06,lo:-73.82,ci:"Elmsford, NY",co:"US",cn:["Bluefors","STAR Cryoelectronics"]},
+{n:"Atlantic Quantum",c:"computing",s:"SC QPU",la:42.37,lo:-71.10,ci:"Cambridge, MA",co:"US",cn:["Bluefors","Keysight"]},
+{n:"Infleqtion",c:"computing",s:"Neutral Atom + PIC",la:39.98,lo:-105.13,ci:"Louisville, CO",co:"US",cn:["TOPTICA Photonics","Vescent Technologies","Stable Laser Systems"]},
+{n:"Quandela",c:"computing",s:"Photonic · QD SPS",la:48.73,lo:2.26,ci:"Massy",co:"FR",cn:["Single Quantum"]},
+{n:"Anyon Systems",c:"computing",s:"SC QPU · Montreal",la:45.50,lo:-73.57,ci:"Montreal, QC",co:"CA",cn:["Bluefors"]},
+{n:"EeroQ",c:"computing",s:"Electron-on-Helium",la:41.88,lo:-87.63,ci:"Chicago, IL",co:"US",cn:["Bluefors","Zurich Instruments"]},
+{n:"Quantum Brilliance",c:"computing",s:"NV Diamond RT QPU",la:-35.28,lo:149.13,ci:"Canberra",co:"AU",cn:["Element Six"]},
+{n:"QuantWare",c:"computing",s:"QPU + TWPA · Delft",la:52.01,lo:4.38,ci:"Delft",co:"NL",cn:["Bluefors"]},
+// SENSING
+{n:"SandboxAQ",c:"sensing",s:"Quantum Magnetometry",la:37.44,lo:-122.16,ci:"Palo Alto, CA",co:"US",cn:["Vescent Technologies","Element Six"]},
+{n:"Q.ANT",c:"sensing",s:"Photonic Sensors · Bosch",la:48.78,lo:9.18,ci:"Stuttgart",co:"DE",cn:["TOPTICA Photonics"]},
+{n:"Qnami",c:"sensing",s:"NV Diamond Scanning",la:47.56,lo:7.59,ci:"Basel",co:"CH",cn:["Element Six"]},
+{n:"QLM Technology",c:"sensing",s:"Quantum Gas Lidar",la:51.45,lo:-2.59,ci:"Bristol",co:"UK",cn:["Single Quantum"]},
+{n:"AOSense",c:"sensing",s:"Inertial Nav / Gravimeter",la:37.39,lo:-122.03,ci:"Sunnyvale, CA",co:"US",cn:["TOPTICA Photonics","Vescent Technologies","Stable Laser Systems"]},
+{n:"Nomad Atomics",c:"sensing",s:"Quantum Gravimeter",la:-35.28,lo:149.12,ci:"Canberra",co:"AU",cn:["M Squared Lasers"]},
+{n:"CIQTEK",c:"sensing",s:"Industrial QSensor · Pre-IPO",la:31.82,lo:117.25,ci:"Hefei",co:"CN",cn:[]},
+{n:"Vector Atomic (IonQ)",c:"sensing",s:"Atomic Clock / INS · $200M DoD",la:37.66,lo:-121.87,ci:"Pleasanton, CA",co:"US",cn:["TOPTICA Photonics","Coherent Corp"]},
+{n:"SBQuantum",c:"sensing",s:"NV Diamond Magnetometer",la:45.40,lo:-71.89,ci:"Sherbrooke, QC",co:"CA",cn:["Element Six"]},
+{n:"QuantumDiamonds",c:"sensing",s:"NV Diamond Sensor",la:48.14,lo:11.58,ci:"Munich",co:"DE",cn:["Element Six"]},
+{n:"Atomionics",c:"sensing",s:"Atom Interferometer",la:1.30,lo:103.85,ci:"Singapore",co:"SG",cn:["TOPTICA Photonics"]},
+{n:"Muquans (Exail)",c:"sensing",s:"Absolute Gravimeter",la:44.84,lo:-0.57,ci:"Bordeaux",co:"FR",cn:["Menlo Systems","M Squared Lasers"]},
+// COMMUNICATION
+{n:"Toshiba QKD",c:"communication",s:"TF-QKD · Multiplexed",la:52.21,lo:0.12,ci:"Cambridge",co:"UK",cn:["Single Quantum","Lumentum","Hamamatsu Photonics"]},
+{n:"ID Quantique (IonQ)",c:"communication",s:"QKD + QRNG + SPD",la:46.20,lo:6.15,ci:"Geneva",co:"CH",cn:["Single Quantum"]},
+{n:"QuantumCTek",c:"communication",s:"QKD National Backbone (CN)",la:31.82,lo:117.22,ci:"Hefei",co:"CN",cn:[],x:"bis-entity"},
+{n:"QNu Labs",c:"communication",s:"QKD · India 500km",la:12.97,lo:77.59,ci:"Bangalore",co:"IN",cn:[]},
+{n:"KETS Quantum",c:"communication",s:"Chip-Scale QKD",la:51.45,lo:-2.60,ci:"Bristol",co:"UK",cn:["Lumentum","LiGenTec"]},
+{n:"Quantum Xchange",c:"communication",s:"QKD Network US",la:38.98,lo:-77.10,ci:"Bethesda, MD",co:"US",cn:["Toshiba QKD"]},
+{n:"QuintessenceLabs",c:"communication",s:"QRNG / Key Mgmt",la:-35.28,lo:149.11,ci:"Canberra",co:"AU",cn:[]},
+{n:"SpeQtral",c:"communication",s:"Satellite QKD · CubeSat",la:1.35,lo:103.82,ci:"Singapore",co:"SG",cn:["ID Quantique (IonQ)"]},
+{n:"Nu Quantum",c:"communication",s:"Photonic Networking",la:52.20,lo:0.11,ci:"Cambridge",co:"UK",cn:["Single Quantum"]},
+{n:"LuxQuanta",c:"communication",s:"CV-QKD 2nd Gen NOVA",la:41.39,lo:2.16,ci:"Barcelona",co:"ES",cn:[]},
+{n:"Qubitekk (IonQ)",c:"communication",s:"Entangled Photon Source",la:32.72,lo:-117.16,ci:"San Diego, CA",co:"US",cn:[]},
+{n:"Quantum Corridor",c:"communication",s:"QKD Infra · IL-IN",la:41.88,lo:-87.64,ci:"Chicago, IL",co:"US",cn:["Toshiba QKD"]},
+// CRYOGENICS
+{n:"Bluefors",c:"cryogenics",s:"DR Market Leader · 1500+ installed",la:60.17,lo:24.94,ci:"Helsinki + Syracuse NY",co:"FI",cn:[],x:"us-eccn"},
+{n:"Oxford Instruments",c:"cryogenics",s:"ProteoxLX DR · Cryostats",la:51.67,lo:-1.28,ci:"Abingdon",co:"UK",cn:[],x:"us-eccn"},
+{n:"Maybell Quantum",c:"cryogenics",s:"MayQ Cryo + Flexlines",la:39.74,lo:-104.99,ci:"Denver, CO",co:"US",cn:[]},
+{n:"Janis (Lake Shore)",c:"cryogenics",s:"DR Systems",la:42.19,lo:-72.61,ci:"Woburn, MA",co:"US",cn:[]},
+{n:"Cryomech (Bluefors)",c:"cryogenics",s:"Pulse Tube Coolers",la:43.05,lo:-76.15,ci:"Syracuse, NY",co:"US",cn:[]},
+{n:"Leiden Cryogenics",c:"cryogenics",s:"Custom DR",la:52.16,lo:4.49,ci:"Leiden",co:"NL",cn:[]},
+{n:"CryoConcept (Air Liquide)",c:"cryogenics",s:"DR Systems",la:48.71,lo:2.17,ci:"Courtaboeuf",co:"FR",cn:[]},
+{n:"ICEoxford",c:"cryogenics",s:"Dry DR",la:52.77,lo:-1.22,ci:"Witney",co:"UK",cn:[]},
+{n:"FormFactor",c:"cryogenics",s:"Cryo Wafer Probers",la:47.61,lo:-122.20,ci:"Livermore, CA",co:"US",cn:[],x:"us-eccn"},
+{n:"Zero Point Cryogenics",c:"cryogenics",s:"DR · Canada",la:53.55,lo:-113.49,ci:"Edmonton, AB",co:"CA",cn:[]},
+{n:"Quantum Design",c:"cryogenics",s:"PPMS / Cryo Platforms",la:32.88,lo:-117.21,ci:"San Diego, CA",co:"US",cn:[]},
+{n:"Ulvac Cryogenics",c:"cryogenics",s:"Cryo Systems · Japan",la:35.65,lo:139.32,ci:"Chigasaki",co:"JP",cn:[]},
+{n:"Taiyo Nippon Sanso",c:"cryogenics",s:"Industrial Cryo · Japan",la:35.69,lo:139.77,ci:"Tokyo",co:"JP",cn:[]},
+{n:"CSSC Pengli",c:"cryogenics",s:"Chinese DR · Domestic",la:39.91,lo:116.39,ci:"Beijing",co:"CN",cn:[],x:"bis-entity"},
+{n:"Hefei Zhileng",c:"cryogenics",s:"Chinese DR · Domestic",la:31.83,lo:117.24,ci:"Hefei",co:"CN",cn:[],x:"bis-entity"},
+// LASERS
+{n:"TOPTICA Photonics",c:"lasers",s:"Tunable Diode Lasers · Dominant",la:48.14,lo:11.50,ci:"Munich",co:"DE",cn:[]},
+{n:"M Squared Lasers",c:"lasers",s:"Ti:Sapph / SolsTiS",la:55.86,lo:-4.25,ci:"Glasgow",co:"UK",cn:[]},
+{n:"Menlo Systems",c:"lasers",s:"Optical Frequency Combs",la:48.12,lo:11.56,ci:"Munich",co:"DE",cn:[]},
+{n:"Coherent Corp",c:"lasers",s:"Laser Systems / III-V",la:40.44,lo:-79.99,ci:"Pittsburgh, PA",co:"US",cn:[]},
+{n:"Lumentum",c:"lasers",s:"Photonics / Modulators",la:37.34,lo:-121.89,ci:"San Jose, CA",co:"US",cn:[]},
+{n:"Vescent Technologies",c:"lasers",s:"Lasers + RUBRIComb",la:39.75,lo:-105.22,ci:"Golden, CO",co:"US",cn:[]},
+{n:"NKT Photonics",c:"lasers",s:"SuperK / SC Lasers",la:55.63,lo:12.08,ci:"Birkerød",co:"DK",cn:[]},
+{n:"Thorlabs",c:"lasers",s:"Optics / Optomech / Fibers",la:40.35,lo:-74.66,ci:"Newton, NJ",co:"US",cn:[]},
+{n:"Hamamatsu Photonics",c:"lasers",s:"SPD / SLM / Cameras",la:34.71,lo:137.73,ci:"Hamamatsu",co:"JP",cn:[]},
+{n:"AA Opto-Electronic",c:"lasers",s:"AOMs / AODs · Key for Ion Traps",la:48.73,lo:2.27,ci:"Orsay",co:"FR",cn:[]},
+{n:"Gooch & Housego",c:"lasers",s:"AOM / Precision Optics",la:51.38,lo:-2.36,ci:"Ilminster",co:"UK",cn:[]},
+{n:"Qubig",c:"lasers",s:"EOMs for Quantum",la:48.26,lo:11.67,ci:"Munich",co:"DE",cn:[]},
+{n:"Stable Laser Systems",c:"lasers",s:"Ultra-Stable Ref Cavities",la:40.01,lo:-105.27,ci:"Boulder, CO",co:"US",cn:[]},
+{n:"MPB Communications",c:"lasers",s:"Fiber Amplifiers (Er)",la:45.45,lo:-73.75,ci:"Montreal, QC",co:"CA",cn:[]},
+{n:"Hübner Photonics",c:"lasers",s:"C-WAVE / Narrow Linewidth",la:51.33,lo:9.49,ci:"Kassel",co:"DE",cn:[]},
+// CONTROL
+{n:"Keysight",c:"control",s:"AWG / Signal Generators",la:38.44,lo:-122.71,ci:"Santa Rosa, CA",co:"US",cn:[]},
+{n:"Zurich Instruments",c:"control",s:"HDAWG / SHFQC / PQSC",la:47.38,lo:8.54,ci:"Zurich",co:"CH",cn:[]},
+{n:"Quantum Machines",c:"control",s:"OPX+ Orchestration",la:32.07,lo:34.77,ci:"Tel Aviv",co:"IL",cn:[]},
+{n:"Qblox",c:"control",s:"Cluster Control Stack",la:52.01,lo:4.36,ci:"Delft",co:"NL",cn:[]},
+{n:"Riverlane",c:"control",s:"Deltaflow QEC Decoder",la:52.20,lo:0.13,ci:"Cambridge",co:"UK",cn:[]},
+{n:"Equal1",c:"control",s:"Cryo-CMOS SoC",la:53.34,lo:-6.27,ci:"Dublin",co:"IE",cn:[],x:"us-eccn"},
+{n:"Qubic Technologies",c:"control",s:"SC Amplifiers / Cryo Ctrl",la:45.50,lo:-73.56,ci:"Montreal, QC",co:"CA",cn:[]},
+{n:"Rohde & Schwarz",c:"control",s:"Signal Gen / RF Test",la:48.13,lo:11.60,ci:"Munich",co:"DE",cn:[]},
+{n:"Tabor Electronics",c:"control",s:"AWG / Pulse Sequencer",la:31.96,lo:34.77,ci:"Tel Aviv",co:"IL",cn:[]},
+// RF
+{n:"Low Noise Factory",c:"rf",s:"Cryo LNA / Isolators",la:57.71,lo:11.97,ci:"Gothenburg",co:"SE",cn:[]},
+{n:"XMA Corp",c:"rf",s:"Cryo Attenuators (20mK)",la:42.99,lo:-71.45,ci:"Manchester, NH",co:"US",cn:[]},
+{n:"Mini-Circuits",c:"rf",s:"Full Stack RF · Cryo Capable",la:40.60,lo:-74.00,ci:"Brooklyn, NY",co:"US",cn:[]},
+{n:"Quantum Microwave",c:"rf",s:"Cryo μWave Marketplace",la:42.36,lo:-71.05,ci:"Massachusetts",co:"US",cn:[]},
+{n:"Atlantic Microwave",c:"rf",s:"Cryo Attenuators / Switches",la:51.07,lo:-1.80,ci:"Braintree",co:"UK",cn:[]},
+{n:"Narda-MITEQ",c:"rf",s:"CLNA Cryo Amplifiers",la:40.77,lo:-73.53,ci:"Hauppauge, NY",co:"US",cn:[]},
+{n:"Silent Waves",c:"rf",s:"TWPAs · ARGO / CARTHAGO",la:48.58,lo:7.75,ci:"Strasbourg",co:"FR",cn:[],x:"eu-dual"},
+{n:"Raytheon BBN",c:"rf",s:"JPAs (Josephson Param Amp)",la:42.39,lo:-71.13,ci:"Cambridge, MA",co:"US",cn:[]},
+{n:"CryoCoax",c:"rf",s:"Cryo Coaxial Assemblies",la:51.19,lo:-0.76,ci:"Basingstoke",co:"UK",cn:[]},
+{n:"Delft Circuits",c:"rf",s:"Cri/oFlex SC Flex Cable",la:52.01,lo:4.37,ci:"Delft",co:"NL",cn:[]},
+{n:"Sweden Quantum",c:"rf",s:"Non-Magnetic IR Filters",la:57.70,lo:11.98,ci:"Gothenburg",co:"SE",cn:[]},
+{n:"Quinstar Technology",c:"rf",s:"Isolators / Circulators",la:34.03,lo:-118.08,ci:"Torrance, CA",co:"US",cn:[]},
+{n:"Marki Microwave",c:"rf",s:"Mixers / Baluns",la:32.90,lo:-117.20,ci:"Morgan Hill, CA",co:"US",cn:[]},
+{n:"mmWave Systems",c:"rf",s:"TWPA 1-10GHz Tunable",la:42.30,lo:-71.10,ci:"Massachusetts",co:"US",cn:[]},
+{n:"QuantWare TWPA",c:"rf",s:"Crescendo-S J-TWPA",la:52.01,lo:4.39,ci:"Delft",co:"NL",cn:[]},
+// VACUUM
+{n:"Kimball Physics",c:"vacuum",s:"UHV Spheres / Chambers",la:43.15,lo:-72.05,ci:"Wilton, NH",co:"US",cn:[]},
+{n:"Pfeiffer Vacuum",c:"vacuum",s:"Turbo / Ion Pumps",la:50.60,lo:8.68,ci:"Aßlar",co:"DE",cn:[]},
+{n:"SAES Getters",c:"vacuum",s:"Getters / Alkali Dispensers",la:45.57,lo:9.28,ci:"Lainate",co:"IT",cn:[]},
+{n:"Kurt J. Lesker",c:"vacuum",s:"UHV Components",la:40.41,lo:-80.16,ci:"Jefferson Hills, PA",co:"US",cn:[]},
+{n:"MDC Vacuum",c:"vacuum",s:"Flanges / Viewports",la:33.82,lo:-118.31,ci:"Hayward, CA",co:"US",cn:[]},
+{n:"ColdQuanta Vacuum",c:"vacuum",s:"Miniature UHV Packages",la:40.01,lo:-105.27,ci:"Boulder, CO",co:"US",cn:[]},
+{n:"Agilent Vacuum",c:"vacuum",s:"Ion Pumps / Leak Detect",la:37.45,lo:-122.13,ci:"Santa Clara, CA",co:"US",cn:[]},
+// DETECTORS
+{n:"Single Quantum",c:"detectors",s:"SNSPD Systems · NbTiN",la:52.01,lo:4.35,ci:"Delft",co:"NL",cn:[]},
+{n:"Photon Spot",c:"detectors",s:"SNSPD Arrays",la:34.14,lo:-118.13,ci:"Monrovia, CA",co:"US",cn:[]},
+{n:"ID Quantique SPD",c:"detectors",s:"InGaAs SPAD / SNSPD",la:46.20,lo:6.16,ci:"Geneva",co:"CH",cn:[]},
+{n:"Pixel Photonics",c:"detectors",s:"Waveguide SNSPD",la:51.96,lo:7.63,ci:"Münster",co:"DE",cn:[]},
+{n:"Quantum Opus",c:"detectors",s:"SNSPD · Telecom λ",la:42.05,lo:-87.68,ci:"Novi, MI",co:"US",cn:[]},
+{n:"Scontel",c:"detectors",s:"SSPD NbN",la:55.75,lo:37.62,ci:"Moscow",co:"RU",cn:[]},
+{n:"Quside",c:"detectors",s:"QRNG Photonic Chips",la:41.39,lo:2.17,ci:"Barcelona",co:"ES",cn:[]},
+// MATERIALS
+{n:"Element Six",c:"materials",s:"Synthetic Diamond · NV Centers",la:51.51,lo:-0.13,ci:"London",co:"UK",cn:[]},
+{n:"IMEC",c:"materials",s:"300mm Qubit Fab · SC/Si Spin",la:50.86,lo:4.68,ci:"Leuven",co:"BE",cn:[]},
+{n:"GlobalFoundries",c:"materials",s:"Photonic Si Fab 300mm",la:42.64,lo:-73.75,ci:"Malta, NY",co:"US",cn:[]},
+{n:"STAR Cryoelectronics",c:"materials",s:"SQUID / JJ Fabrication",la:35.04,lo:-106.63,ci:"Santa Fe, NM",co:"US",cn:[]},
+{n:"VTT Technical Research",c:"materials",s:"SC Qubit Fabrication",la:60.19,lo:24.83,ci:"Espoo",co:"FI",cn:[]},
+{n:"Siltronic",c:"materials",s:"Ultra-Pure 300mm Si",la:48.22,lo:11.83,ci:"Munich",co:"DE",cn:[]},
+{n:"Shin-Etsu Chemical",c:"materials",s:"Si Wafers / Photomasks",la:35.69,lo:139.69,ci:"Tokyo",co:"JP",cn:[]},
+{n:"II-VI Coherent Mat.",c:"materials",s:"III-V / SiC / InP Substrates",la:40.44,lo:-80.00,ci:"Pittsburgh, PA",co:"US",cn:[]},
+{n:"LiGenTec",c:"materials",s:"Si₃N₄ PIC Foundry",la:46.52,lo:6.63,ci:"Lausanne",co:"CH",cn:[]},
+{n:"Andor (Oxford Inst.)",c:"materials",s:"EMCCD / sCMOS Cameras",la:54.60,lo:-5.93,ci:"Belfast",co:"UK",cn:[]},
+// MINERALS
+{n:"CBMM (Niobium 90%)",c:"minerals",s:"Nb: SC wiring, JJs, resonators",la:-19.58,lo:-46.94,ci:"Araxá, MG",co:"BR",cn:["Bluefors","Oxford Instruments","STAR Cryoelectronics","Delft Circuits","SEEQC","HYPRES"]},
+{n:"China Baotou RE Hub",c:"minerals",s:"RE Refining 91% · Er/Yb/Gd",la:40.66,lo:109.84,ci:"Baotou",co:"CN",cn:[],x:"cn-export"},
+{n:"US DOE He-3 (ORNL)",c:"minerals",s:"He-3 from tritium decay",la:35.93,lo:-84.31,ci:"Oak Ridge, TN",co:"US",cn:["Bluefors","Oxford Instruments","Maybell Quantum","Janis (Lake Shore)","Leiden Cryogenics","CryoConcept (Air Liquide)"]},
+{n:"Interlune (He-3 Lunar)",c:"minerals",s:"Future lunar He-3 mining",la:47.61,lo:-122.33,ci:"Seattle, WA",co:"US",cn:[]},
+{n:"Rubidium (Quebec)",c:"minerals",s:"Rb for neutral atom traps",la:46.81,lo:-71.21,ci:"Quebec",co:"CA",cn:["QuEra Computing","Infleqtion","Pasqal"]},
+{n:"DRC Tantalum",c:"minerals",s:"Ta / Coltan",la:-4.32,lo:15.31,ci:"Kinshasa",co:"CD",cn:[]},
+{n:"China Gallium (80%+)",c:"minerals",s:"Ga export controlled · III-V",la:36.06,lo:103.83,ci:"Lanzhou",co:"CN",cn:[],x:"cn-export"},
+{n:"China Germanium (60%)",c:"minerals",s:"Ge export controlled · IR",la:30.57,lo:104.07,ci:"Chengdu",co:"CN",cn:[],x:"cn-export"},
+{n:"Greenland CRMC",c:"minerals",s:"HREE · Emerging non-China",la:61.0,lo:-45.0,ci:"Narsaq",co:"GL",cn:[]},
+{n:"MP Materials",c:"minerals",s:"US rare earth mining",la:35.47,lo:-115.51,ci:"Mountain Pass, CA",co:"US",cn:[]},
+{n:"Lynas Rare Earths",c:"minerals",s:"Non-China RE · AU→MY proc.",la:-33.87,lo:151.22,ci:"Sydney",co:"AU",cn:[]},
+{n:"Strontium (Mexico)",c:"minerals",s:"Sr for neutral atom traps",la:23.63,lo:-102.55,ci:"Mexico",co:"MX",cn:["QuEra Computing","Atom Computing"]},
+{n:"Umicore (Ge/Ga)",c:"minerals",s:"Non-China Ge/Ga refining",la:51.22,lo:4.40,ci:"Brussels",co:"BE",cn:[]},
+{n:"Ames Lab DOE",c:"minerals",s:"RE research & processing",la:42.03,lo:-93.64,ci:"Ames, IA",co:"US",cn:[]},
+// === NEW FROM HS CODE RESEARCH (EPO/OECD Quantum Ecosystem Report) ===
+// SEMICONDUCTOR FAB EQUIPMENT (HS 848620)
+{n:"Applied Materials",c:"materials",s:"PVD/CVD/ALD/Etch · HS 848620",la:37.35,lo:-121.96,ci:"Santa Clara, CA",co:"US",cn:[],x:"us-eccn"},
+{n:"Lam Research",c:"materials",s:"CVD/ALD/Plasma Etch · HS 848620",la:37.55,lo:-122.06,ci:"Fremont, CA",co:"US",cn:[],x:"us-eccn"},
+{n:"Tokyo Electron (TEL)",c:"materials",s:"CVD/Etch/Coat · HS 848620",la:35.63,lo:139.73,ci:"Tokyo",co:"JP",cn:[],x:"us-eccn"},
+{n:"ASM International",c:"materials",s:"ALD/CVD Epitaxy · HS 848620",la:52.37,lo:5.20,ci:"Almere",co:"NL",cn:[]},
+{n:"Plasma-Therm",c:"materials",s:"RIE/ICP Etch · HS 848620",la:27.77,lo:-82.64,ci:"St. Petersburg, FL",co:"US",cn:[]},
+{n:"SUSS MicroTec",c:"materials",s:"Mask Aligners / Litho · HS 848620",la:48.25,lo:11.65,ci:"Garching",co:"DE",cn:[]},
+{n:"Veeco Instruments",c:"materials",s:"MBE/PVD/ALD · HS 848620",la:40.78,lo:-73.50,ci:"Plainview, NY",co:"US",cn:[]},
+{n:"ASML",c:"materials",s:"Lithography (EUV/DUV) · HS 848620",la:51.41,lo:5.47,ci:"Veldhoven",co:"NL",cn:[],x:"us-eccn"},
+{n:"NAURA Technology",c:"materials",s:"PVD/CVD/Etch · CN domestic",la:39.98,lo:116.31,ci:"Beijing",co:"CN",cn:[],x:"bis-entity"},
+// III-V & SPECIALTY SUBSTRATES (HS 381800, 285390)
+{n:"AXT Inc",c:"minerals",s:"GaAs/InP/Ge Substrates · HS 381800",la:37.55,lo:-122.05,ci:"Fremont, CA",co:"US",cn:[]},
+{n:"Sumitomo Electric",c:"minerals",s:"InP Substrates · HS 285390",la:34.69,lo:135.50,ci:"Osaka",co:"JP",cn:[]},
+{n:"IQE plc",c:"minerals",s:"III-V Epitaxy Wafers · HS 381800",la:51.48,lo:-3.17,ci:"Cardiff",co:"UK",cn:[]},
+{n:"Wolfspeed (Cree)",c:"minerals",s:"SiC Substrates · HS 284920",la:35.99,lo:-78.90,ci:"Durham, NC",co:"US",cn:[]},
+// SPECIALTY RAW MATERIALS (HS 280480, 280519, 710221, 810320 etc.)
+{n:"Alfa Aesar (Thermo)",c:"minerals",s:"As/Ba/Bi/Cs Compounds · HS 280480+",la:42.78,lo:-71.08,ci:"Haverhill, MA",co:"US",cn:[]},
+{n:"Stanford Adv. Materials",c:"minerals",s:"Nb/Ta/Ti/RE Metals · HS 811292+",la:33.68,lo:-117.83,ci:"Irvine, CA",co:"US",cn:[]},
+{n:"Covesion (UK)",c:"materials",s:"LiNbO₃ PPLN Crystals · HS 382499",la:52.63,lo:1.30,ci:"Southampton",co:"UK",cn:[]},
+// LASER SYSTEMS (HS 901320 — non-diode lasers)
+{n:"Spectra-Physics (MKS)",c:"lasers",s:"Ultrafast / CW Lasers · HS 901320",la:37.38,lo:-122.08,ci:"Santa Clara, CA",co:"US",cn:[]},
+{n:"Trumpf Laser",c:"lasers",s:"Industrial / Scientific Lasers · HS 901320",la:48.72,lo:9.11,ci:"Ditzingen",co:"DE",cn:[]},
+// DIODE LASERS (HS 854141)
+{n:"Ushio Inc",c:"lasers",s:"Laser Diodes / UV LEDs · HS 854141",la:35.69,lo:139.76,ci:"Tokyo",co:"JP",cn:[]},
+{n:"Osram (ams-OSRAM)",c:"lasers",s:"Laser Diodes / VCSELs · HS 854141",la:48.13,lo:11.57,ci:"Munich",co:"DE",cn:[]},
+// AWG / SIGNAL GENERATORS (HS 854320)
+{n:"Tektronix (Fortive)",c:"control",s:"AWG5200 / Signal Gen · HS 854320",la:45.51,lo:-122.56,ci:"Beaverton, OR",co:"US",cn:[]},
+{n:"National Instruments",c:"control",s:"PXI / USRP RF · HS 854320",la:30.40,lo:-97.73,ci:"Austin, TX",co:"US",cn:[]},
+// RF & MICROWAVE AMPLIFIERS (HS 854233)
+{n:"Analog Devices",c:"rf",s:"RF/μWave Amp ICs · HS 854233",la:42.53,lo:-71.35,ci:"Wilmington, MA",co:"US",cn:[]},
+{n:"Qorvo",c:"rf",s:"GaN/GaAs RF Amps · HS 854233",la:36.10,lo:-79.83,ci:"Greensboro, NC",co:"US",cn:[]},
+// PHOTON DETECTORS (HS 903089)
+{n:"Teledyne Technologies",c:"detectors",s:"sCMOS / InGaAs Arrays · HS 903089",la:34.00,lo:-118.48,ci:"Thousand Oaks, CA",co:"US",cn:[]},
+{n:"Laser Components",c:"detectors",s:"SPADs / APDs / SPDs · HS 903089",la:48.39,lo:11.73,ci:"Olching",co:"DE",cn:[]},
+// OPTICAL COMPONENTS (HS 900190)
+{n:"Edmund Optics",c:"lasers",s:"Lenses/Mirrors/Filters · HS 900190",la:39.88,lo:-74.82,ci:"Barrington, NJ",co:"US",cn:[]},
+{n:"Newport (MKS Inst.)",c:"lasers",s:"Optical Tables/Mounts · HS 900190",la:33.66,lo:-117.87,ci:"Irvine, CA",co:"US",cn:[]},
+// VACUUM PUMPS (HS 841410)
+{n:"Edwards Vacuum",c:"vacuum",s:"Turbo/Scroll Pumps · HS 841410",la:51.87,lo:-0.42,ci:"Burgess Hill",co:"UK",cn:[]},
+{n:"Leybold (Atlas Copco)",c:"vacuum",s:"Turbo/Dry Pumps · HS 841410",la:51.17,lo:6.85,ci:"Cologne",co:"DE",cn:[]},
+// CRYOSTATS / HEAT EXCHANGERS (HS 841950)
+{n:"Linde Engineering",c:"cryogenics",s:"He Liquefiers/Recovery · HS 841950",la:48.16,lo:11.50,ci:"Munich",co:"DE",cn:[]},
+// TIME & FREQUENCY (HS 910690 — Rubidium clocks)
+{n:"Microchip (Microsemi)",c:"control",s:"Rb/Cs Atomic Clocks · HS 910690",la:33.30,lo:-111.84,ci:"Chandler, AZ",co:"US",cn:[]},
+// CONNECTORS (HS 853669, 854442)
+{n:"Rosenberger",c:"rf",s:"Cryo RF Connectors · HS 853669",la:48.09,lo:12.18,ci:"Fridolfing",co:"DE",cn:[]},
+// POWER SUPPLIES (HS 850440)
+{n:"Stahl Electronics",c:"control",s:"Ultra-Low-Noise DC Sources · HS 850440",la:48.77,lo:11.45,ci:"Aachen",co:"DE",cn:[]},
+{n:"QDevil (Quantum Machines)",c:"control",s:"QDAC-II / QFilter / QBoard · Cryo DACs",la:55.68,lo:12.57,ci:"Copenhagen",co:"DK",cn:["Quantum Machines"]},
+// === RESTORED (dropped during V3→V4 rebuild) ===
+{n:"SpinQ Technology",c:"computing",s:"NMR / Portable QC",la:22.54,lo:114.06,ci:"Shenzhen",co:"CN",cn:[]},
+{n:"ColdEdge Technologies",c:"cryogenics",s:"Cryo Integration & Custom",la:40.07,lo:-75.31,ci:"Allentown, PA",co:"US",cn:[]},
+{n:"ConScience AB",c:"rf",s:"QiB0 Qubit-in-a-Box",la:57.71,lo:12.00,ci:"Gothenburg",co:"SE",cn:[]},
+{n:"RF-Lambda",c:"rf",s:"Amplifiers / Mixers / Switches",la:33.92,lo:-84.34,ci:"Duluth, GA",co:"US",cn:[]},
+{n:"SeeQC Foundry",c:"materials",s:"SC SFQ Chip Fabrication",la:41.06,lo:-73.83,ci:"Elmsford, NY",co:"US",cn:[]},
+{n:"China Indium/InP",c:"minerals",s:"Indium / InGaAs · HS 811292",la:30.57,lo:104.07,ci:"Chengdu",co:"CN",cn:[],x:"cn-export"},
+// === NEW FROM QUANTUM INSIDER MARKET MAP (Feb 2025) ===
+// QPUs - Superconducting (missing)
+{n:"OQC (Oxford Quantum Circuits)",c:"computing",s:"SC QPU · Coaxmon · $100M raised",la:51.45,lo:-0.97,ci:"Reading",co:"UK",cn:["Bluefors","Riverlane"],x:"us-eccn"},
+{n:"Nord Quantique",c:"computing",s:"SC QPU · Bosonic Codes",la:45.40,lo:-71.89,ci:"Sherbrooke, QC",co:"CA",cn:["Bluefors"]},
+{n:"QCI (Quantum Computing Inc)",c:"computing",s:"SC + Photonic QPU",la:40.74,lo:-74.03,ci:"Hoboken, NJ",co:"US",cn:["Bluefors","Single Quantum"]},
+// QPUs - Ion Traps (missing)
+{n:"Oxford Ionics",c:"computing",s:"Trapped Ion · Electronic Qubit Control",la:51.45,lo:-0.96,ci:"Reading",co:"UK",cn:["TOPTICA Photonics","Kimball Physics","SAES Getters","Pfeiffer Vacuum"]},
+{n:"AQT (Alpine Quantum Tech)",c:"computing",s:"Trapped Ion · Innsbruck",la:47.26,lo:11.39,ci:"Innsbruck",co:"AT",cn:["TOPTICA Photonics","M Squared Lasers","Kimball Physics","SAES Getters"]},
+{n:"Universal Quantum",c:"computing",s:"Trapped Ion · Microwave Gates",la:50.84,lo:-0.13,ci:"Brighton",co:"UK",cn:["Keysight","Kimball Physics","Pfeiffer Vacuum"]},
+{n:"eleQtron",c:"computing",s:"Trapped Ion · Microwave-Driven MAGIC",la:52.37,lo:9.74,ci:"Hannover",co:"DE",cn:["TOPTICA Photonics","Menlo Systems"]},
+// QPUs - Neutral Atoms (missing)
+{n:"Atom Computing",c:"computing",s:"Neutral Atom · 1225q (Sr)",la:37.87,lo:-122.27,ci:"Berkeley, CA",co:"US",cn:["TOPTICA Photonics","AA Opto-Electronic","Hamamatsu Photonics"]},
+{n:"Pasqal",c:"computing",s:"Neutral Atom · Analog/Digital · $65M US HQ",la:48.73,lo:2.27,ci:"Massy + Chicago",co:"FR",cn:["TOPTICA Photonics","M Squared Lasers","AA Opto-Electronic","Hamamatsu Photonics"]},
+// QPUs - Silicon (missing)
+{n:"Silicon Quantum Computing",c:"computing",s:"Si Spin · UNSW Spinout",la:-33.92,lo:151.23,ci:"Sydney",co:"AU",cn:["Bluefors","IMEC","QDevil (Quantum Machines)"]},
+{n:"Quantum Motion",c:"computing",s:"Si CMOS Spin · Oxford/London",la:51.76,lo:-1.26,ci:"Oxford",co:"UK",cn:["IMEC","Bluefors","Zurich Instruments","QDevil (Quantum Machines)"]},
+// QPUs - Photonics (missing)
+{n:"Photonic Inc",c:"computing",s:"Si Spin-Photon · T-Centre",la:49.28,lo:-123.12,ci:"Vancouver, BC",co:"CA",cn:["Bluefors","Single Quantum"]},
+// Software & Control (key missing from map)
+{n:"Q-CTRL",c:"control",s:"Quantum Firmware / Control SW",la:-33.87,lo:151.21,ci:"Sydney",co:"AU",cn:[]},
+{n:"Multiverse Computing",c:"computing",s:"Quantum Finance / Optimization SW",la:43.32,lo:-1.98,ci:"San Sebastián",co:"ES",cn:[]},
+{n:"Classiq",c:"control",s:"Quantum Circuit Synthesis SW",la:32.07,lo:34.78,ci:"Tel Aviv",co:"IL",cn:[]},
+{n:"Strangeworks",c:"control",s:"Quantum Orchestration Platform",la:30.27,lo:-97.74,ci:"Austin, TX",co:"US",cn:[]},
+// Cryogenics (missing from map)
+{n:"Montana Instruments",c:"cryogenics",s:"Compact Cryostats / Optical",la:45.68,lo:-111.04,ci:"Bozeman, MT",co:"US",cn:[]},
+// Cloud / Simulation (missing)
+{n:"Eviden (Atos)",c:"computing",s:"Quantum Cloud / Emulator (Qaptiva)",la:48.90,lo:2.24,ci:"Bezons",co:"FR",cn:[]},
+// === NEW FROM COMPREHENSIVE RESEARCH (April 2026) ===
+// Major QPU manufacturers missing
+{n:"Fujitsu / RIKEN",c:"computing",s:"SC QPU · 256q → 1000q 2026",la:35.78,lo:139.60,ci:"Wako / Kawasaki",co:"JP",cn:["Bluefors","Zurich Instruments"]},
+{n:"Microsoft Quantum",c:"computing",s:"Topological · Majorana 1 Chip",la:47.64,lo:-122.13,ci:"Redmond, WA",co:"US",cn:["Bluefors"],x:"us-eccn"},
+{n:"Qudoor (国盾量子)",c:"computing",s:"Trapped Ion · China",la:31.83,lo:117.26,ci:"Hefei",co:"CN",cn:[],x:"bis-entity"},
+{n:"QuamCore",c:"computing",s:"SC QPU · Million-Qubit Arch (IL)",la:32.08,lo:34.78,ci:"Tel Aviv",co:"IL",cn:["Bluefors"]},
+{n:"Quantum Art",c:"computing",s:"Trapped Ion · 200-Ion Chain (IL)",la:31.77,lo:35.22,ci:"Jerusalem",co:"IL",cn:["TOPTICA Photonics","Kimball Physics"]},
+// Quantum software with hardware dependencies
+{n:"1QBit",c:"computing",s:"Quantum SW / Algorithms",la:49.28,lo:-123.12,ci:"Vancouver, BC",co:"CA",cn:[]},
+{n:"QC Ware",c:"computing",s:"Enterprise Quantum SW",la:37.44,lo:-122.16,ci:"Palo Alto, CA",co:"US",cn:[]},
+{n:"Horizon Quantum",c:"computing",s:"Quantum Compiler SW",la:1.30,lo:103.85,ci:"Singapore",co:"SG",cn:[]},
+{n:"Phasecraft",c:"computing",s:"Quantum Algorithms (UK)",la:51.52,lo:-0.08,ci:"London",co:"UK",cn:[]},
+// Hardware components from market map
+{n:"SEEQC Photonics",c:"lasers",s:"Photonic Integration for SC QC",la:41.06,lo:-73.81,ci:"Elmsford, NY",co:"US",cn:[]},
+{n:"QFX (Atom Sources)",c:"vacuum",s:"Ion Trap Atom Sources (Yb/Ca/Sr/Ba)",la:51.75,lo:-1.26,ci:"Oxford",co:"UK",cn:[]},
+{n:"HYPRES",c:"materials",s:"SC Microelectronics / SFQ ICs",la:41.06,lo:-73.82,ci:"Elmsford, NY",co:"US",cn:[]},
+{n:"Lightsynq (Harvard)",c:"communication",s:"Quantum Networking / Repeaters",la:42.38,lo:-71.12,ci:"Cambridge, MA",co:"US",cn:["Single Quantum","TOPTICA Photonics"]},
+{n:"Arctic Instruments",c:"rf",s:"Cryo RF Switches / Filters",la:60.17,lo:24.94,ci:"Espoo",co:"FI",cn:["Bluefors"]},
+{n:"PIONIQ",c:"control",s:"Qubit Control Instrumentation",la:47.38,lo:8.55,ci:"Zurich",co:"CH",cn:["Zurich Instruments"]},
+// Quantum security / PQC companies
+{n:"PQShield",c:"communication",s:"PQC IP / Hardware Crypto",la:51.75,lo:-1.26,ci:"Oxford",co:"UK",cn:[]},
+{n:"ISARA Corp",c:"communication",s:"Quantum-Safe Crypto Library",la:43.47,lo:-80.52,ci:"Waterloo, ON",co:"CA",cn:[]},
+{n:"Crypto Quantique",c:"communication",s:"Quantum-Driven IoT Security",la:51.52,lo:-0.10,ci:"London",co:"UK",cn:[]},
+// Cloud platforms with quantum hardware
+{n:"AWS Braket",c:"computing",s:"Cloud QC (IonQ/Rigetti/QuEra)",la:47.62,lo:-122.34,ci:"Seattle, WA",co:"US",cn:["IonQ","Rigetti Computing","QuEra Computing"]},
+{n:"Azure Quantum",c:"computing",s:"Cloud QC (Quantinuum/IonQ/Rigetti)",la:47.64,lo:-122.14,ci:"Redmond, WA",co:"US",cn:["Quantinuum","IonQ","Rigetti Computing"]},
+{n:"Google Cloud Quantum",c:"computing",s:"Cloud QC (Google AI)",la:37.42,lo:-122.08,ci:"Mountain View, CA",co:"US",cn:["Google Quantum AI"]},
+// NV Diamond QPU
+{n:"XeedQ",c:"computing",s:"NV Diamond QPU · Leipzig",la:51.34,lo:12.38,ci:"Leipzig",co:"DE",cn:["Element Six"]},
+// Additional national players
+{n:"Baidu Quantum",c:"computing",s:"SC QPU · Qian Shi (China)",la:39.98,lo:116.31,ci:"Beijing",co:"CN",cn:[],x:"bis-entity"},
+{n:"Alibaba DAMO Quantum",c:"computing",s:"SC QPU · Fluxonium (China)",la:30.27,lo:120.15,ci:"Hangzhou",co:"CN",cn:[],x:"bis-entity"},
+];
+
+
+// ============ LEAFLET MAP ============
+let layer='all',sel=null;
+const map=L.map('map',{center:[30,0],zoom:2,minZoom:2,maxZoom:12,zoomControl:true,attributionControl:false,worldCopyJump:true});
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19,pane:'shadowPane'}).addTo(map);
+
+const markers={},lines=[];
+const markerLayer=L.layerGroup().addTo(map);
+const lineLayer=L.layerGroup().addTo(map);
+
+function buildMarkers(){
+  markerLayer.clearLayers();lineLayer.clearLayers();
+  const vis=e=>layer==='all'||e.c===layer;
+  // Lines first
+  D.forEach(e=>{if(!vis(e))return;
+    e.cn.forEach(tn=>{
+      const t=D.find(x=>x.n===tn);if(!t)return;
+      if(!vis(t)&&layer!=='all')return;
+      const hi=sel&&(sel.n===e.n||sel.n===t.n);
+      const line=L.polyline([[e.la,e.lo],[t.la,t.lo]],{
+        color:hi?(CC[e.c]||'#4fc3f7'):'rgba(100,160,220,0.12)',
+        weight:hi?2.5:.8,
+        opacity:hi?.7:.4,
+        dashArray:hi?null:'4 4',
+        className:'supply-line'
+      });
+      lineLayer.addLayer(line);
+    });
+  });
+  // Markers
+  D.forEach(e=>{if(!vis(e))return;
+    const sz=e.c==='minerals'?12:e.c==='computing'?11:10;
+    const dim=(sel&&sel.n!==e.n&&!sel.cn.includes(e.n)&&!e.cn.includes(sel?.n));
+    const icon=L.divIcon({
+      className:'',
+      html:`<div class="q-marker${e.x?' export-ctrl':''}${sel&&sel.n===e.n?' selected':''}" style="width:${sz}px;height:${sz}px;background:${CC[e.c]};border-color:${CC[e.c]};opacity:${dim?.25:1}"></div>`,
+      iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]
+    });
+    const m=L.marker([e.la,e.lo],{icon}).addTo(markerLayer);
+
+    // Hover events for floating card
+    m.on('mouseover',function(ev){showHoverCard(e, ev.originalEvent);});
+    m.on('mousemove',function(ev){moveHoverCard(ev.originalEvent);});
+    m.on('mouseout',function(){hideHoverCard();});
+
+    // Click to select
+    m.on('click',function(){
+      sel=e;
+      buildMarkers();
+      renderList();
+      showHoverCard(e, null, true);
+    });
+    markers[e.n]=m;
+  });
+}
+
+// ============ FLOATING HOVER CARD ============
+const hcEl=document.getElementById('hoverCard');
+let hcPinned=false;
+
+function showHoverCard(e, ev, pinned){
+  hcPinned=!!pinned;
+  const col=CC[e.c];
+  const connectedTo=e.cn.length?e.cn:[];
+  const suppliedBy=D.filter(x=>x.cn.includes(e.n)).map(x=>x.n);
+  
+  hcEl.innerHTML=`
+    <div class="hc-header">
+      <div class="hc-dot" style="background:${col};--hc-color:${col}"></div>
+      <div>
+        <div class="hc-name" style="color:${col}">${e.n}</div>
+        <div class="hc-type" style="color:${col}">${CL[e.c]}</div>
+      </div>
+    </div>
+    <div class="hc-divider"></div>
+    <div class="hc-row"><span class="hc-icon">⚙</span><b>${e.s}</b></div>
+    <div class="hc-row"><span class="hc-icon">📍</span>${e.ci} &nbsp;(${e.co})</div>
+    ${connectedTo.length?`<div class="hc-row"><span class="hc-icon">→</span><span>Supplies from:</span></div><div class="hc-links">${connectedTo.map(n=>`<span class="hc-link">${n}</span>`).join('')}</div>`:''}
+    ${suppliedBy.length?`<div class="hc-row" style="margin-top:4px"><span class="hc-icon">←</span><span>Supplies to:</span></div><div class="hc-links">${suppliedBy.slice(0,8).map(n=>`<span class="hc-link">${n}</span>`).join('')}${suppliedBy.length>8?`<span class="hc-link">+${suppliedBy.length-8} more</span>`:''}</div>`:''}
+    ${e.x?`<div class="hc-export">⚠ ${XL[e.x]}</div>`:''}
+  `;
+  hcEl.classList.add('show');
+  
+  if(ev){
+    positionHoverCard(ev.clientX, ev.clientY);
+  } else if(pinned){
+    // Position near the marker on the map
+    const pt=map.latLngToContainerPoint([e.la,e.lo]);
+    const mapRect=document.getElementById('map').getBoundingClientRect();
+    positionHoverCard(mapRect.left+pt.x, mapRect.top+pt.y);
+  }
+}
+
+function moveHoverCard(ev){
+  if(hcPinned)return;
+  positionHoverCard(ev.clientX, ev.clientY);
+}
+
+function positionHoverCard(cx, cy){
+  const pad=16;
+  const cw=hcEl.offsetWidth||300;
+  const ch=hcEl.offsetHeight||200;
+  const vw=window.innerWidth;
+  const vh=window.innerHeight;
+  
+  let x=cx+pad;
+  let y=cy-ch/2;
+  
+  // Keep within viewport
+  if(x+cw>vw-pad) x=cx-cw-pad;
+  if(y<pad) y=pad;
+  if(y+ch>vh-pad) y=vh-ch-pad;
+  
+  hcEl.style.left=x+'px';
+  hcEl.style.top=y+'px';
+}
+
+function hideHoverCard(){
+  if(hcPinned)return;
+  hcEl.classList.remove('show');
+}
+
+// Click on map background to dismiss pinned card
+map.on('click',function(ev){
+  if(!ev.originalEvent.target.closest('.q-marker')){
+    sel=null;
+    hcPinned=false;
+    hcEl.classList.remove('show');
+    buildMarkers();
+    renderList();
+  }
+});
+
+// ============ UI ============
+function renderTabs(){
+  document.getElementById('tabs').innerHTML=['all',...Object.keys(CC)].map(k=>
+    `<button class="tab${layer===k?' on':''}" onclick="layer='${k}';sel=null;hcPinned=false;hcEl.classList.remove('show');buildMarkers();renderList();renderTabs();renderChips()">${k==='all'?'All ('+D.length+')':CL[k]}</button>`
+  ).join('');
+}
+function renderChips(){
+  const c={};D.forEach(e=>c[e.c]=(c[e.c]||0)+1);
+  document.getElementById('chips').innerHTML=Object.keys(CC).map(k=>`<span class="chip${layer===k||layer==='all'?' on':''}" style="${layer===k||layer==='all'?'background:'+CC[k]+'18;color:'+CC[k]+';border-color:'+CC[k]+'30':''}" onclick="layer='${k}';sel=null;hcPinned=false;hcEl.classList.remove('show');buildMarkers();renderList();renderTabs();renderChips()">${CL[k]} ${c[k]||0}</span>`).join('');
+}
+function renderList(){
+  const q=document.getElementById('search').value.toLowerCase();
+  const f=D.filter(e=>(layer==='all'||e.c===layer)&&(!q||e.n.toLowerCase().includes(q)||e.s.toLowerCase().includes(q)||e.ci.toLowerCase().includes(q))).sort((a,b)=>a.n.localeCompare(b.n));
+  document.getElementById('elist').innerHTML=f.map(e=>`<div class="ei${sel===e?' sel':''}" onclick="selectFromList('${e.n.replace(/'/g,"\\'")}',${e.la},${e.lo})">
+    <div class="dot" style="background:${CC[e.c]}"></div>
+    <span class="nm">${e.n}</span>
+    ${e.x?'<span class="fl xf">⚠</span>':''}
+    <span class="co">${e.co}</span>
+  </div>`).join('');
+}
+function selectFromList(name,la,lo){
+  sel=D.find(x=>x.n===name)||null;
+  buildMarkers();
+  renderList();
+  // On mobile, scroll the map into view first
+  const mapEl=document.getElementById('map');
+  if(window.innerWidth<=1024){
+    mapEl.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  map.setView([la,lo],5,{animate:true});
+  if(sel){
+    setTimeout(()=>{map.invalidateSize();showHoverCard(sel,null,true);},400);
+  }
+}
+function renderLegend(){
+  document.getElementById('mapLegend').innerHTML=Object.keys(CC).map(k=>`<div class="ml"><i style="background:${CC[k]}"></i>${CL[k]}</div>`).join('')+`<div class="ml"><i style="background:transparent;border:2px solid #ff1744;border-radius:50%"></i>Export Controlled</div>`;
+}
+
+// ============ RIGHT PANEL — BOMs with Primary + Secondary Suppliers ============
+function buildRP(){document.getElementById('rp').innerHTML=`
+<div class="card"><div class="card-t"><span class="badge b-w">HS CODES</span> Quantum-Relevant Trade Classification (EPO/OECD)</div><div class="card-b">
+<b>38 HS codes</b> covering 50 quantum-relevant products identified by EPO/OECD Quantum Ecosystem Report (2024). Used to track $B+ in quantum trade flows.<br><br>
+<b style="color:var(--minerals)">Raw Materials (26 products, 18 codes):</b><br>
+Arsenic (280480) · Aluminium (760110) · Al₂O₃ (281820) · Barium/Ba (280519) · BaTiO₃ (284190) · Bismuth (810610) · Caesium (280519) · Diamond (710221) · Erbium (280530) · Europium (280530) · Gallium (811292) · GaAs (381800) · Germanium (811292) · <b style="color:var(--a5)">Helium-3 (284540)</b> · Indium (811292) · InP (285390) · LiNbO₃ (382499) · <b style="color:var(--a5)">Niobium (811292)</b> · Nitrogen (280430) · Rubidium (280519) · SiC (284920) · <b style="color:var(--a5)">Silicon-28 (284590)</b> · Strontium (280519) · Tantalum (810320) · Titanium (810820) · Ytterbium (280530)<br><br>
+<b style="color:var(--a)">Equipment (24 products, 20 codes):</b><br>
+AWGs (854320) · Cables (854442) · Cleaning/Plasma (848620) · Connectors (853669) · <b style="color:var(--a5)">Cryostats (841950)</b> · Power Supply (850440) · <b style="color:var(--a5)">Deposition PVD/CVD/ALD (848620)</b> · Diode Lasers (854141) · Elec. Connectors (853690) · <b style="color:var(--a5)">Etching RIE/ICP (848620)</b> · HEMTs (854129) · <b style="color:var(--a5)">Laser Systems (901320)</b> · Mask Aligners (848620) · Spectrometers (902730) · Optical Components (900190) · Optical Freq. Eq. (902750) · <b style="color:var(--a5)">RF/μWave Amps (854233)</b> · <b style="color:var(--a5)">Photon Detectors (903089)</b> · <b style="color:var(--a5)">Qubit Control ICs (854231/854239)</b> · Rb Clocks (910690) · <b style="color:var(--a5)">Vacuum Pumps (841410)</b>
+</div></div>
+
+<div class="card"><div class="card-t"><span class="badge b-x">EXPORT CONTROLS</span> Quantum Technology Restrictions 2024–2026</div><div class="card-b">
+<b style="color:#ff1744">US BIS (Sep 2024):</b> ECCN 3A901 (cryo-CMOS, parametric amps), 3B903 (dilution fridges), 3B904 (cryo wafer probers), 3C907-909 (isotopic Si/Ge), 4A906 (quantum computers). License required for China — presumption of denial.<br><br>
+<b style="color:#ff1744">BIS Entity List (Mar 2025):</b> 7 new Chinese quantum entities — cryogenics upstream (CSSC Pengli, Physike, Hefei Zhileng) + optoelectronics.<br><br>
+<b style="color:#ff6d00">EU Dual-Use "500 Series" (Nov 2025):</b> First EU-only controls: quantum computers, parametric amps, cryo cooling, cryo wafer probers.<br><br>
+<b style="color:#ffd600">China (2023-24):</b> Ga, Ge export licenses. RE dual-use: items with ≥0.1% Chinese RE content. QKD/quantum crypto export licenses.
+</div></div>
+
+<div class="card"><div class="card-t"><span class="badge b-c">FULL BOM</span> Superconducting QC — Primary + Secondary Vendors</div>
+<table class="bom"><tr><th>Component</th><th>Primary → Secondary</th><th>Ctrl</th></tr>
+<tr><td class="cat">Dilution Refrigerator</td><td><span class="pri">Bluefors, Oxford Instruments</span><span class="sec">→ Leiden Cryo, CryoConcept, Janis/Lake Shore, ICEoxford, Maybell, Zero Point Cryo, Ulvac Cryo, Taiyo Nippon Sanso, Quantum Design</span></td><td class="xctl">3B903</td></tr>
+<tr><td class="cat">Helium-3</td><td><span class="pri">US DOE ORNL Isotope Pgm</span><span class="sec">→ Interlune (future lunar), Russia (geopolitical risk), CERN surplus</span></td><td class="xctl">Scarce</td></tr>
+<tr><td class="cat">QPU Chip (Nb/Al)</td><td><span class="pri">In-house (IBM/Google/Rigetti)</span><span class="sec">→ IMEC, VTT, QuantWare, STAR Cryo, SeeQC Foundry</span></td><td class="xctl">4A906</td></tr>
+<tr><td>Cryo Coax Cables</td><td><span class="pri">CryoCoax/Intelliconnect, Delft Circuits</span><span class="sec">→ Coax Co., Keycom, Lake Shore, Maybell Flexlines</span></td><td></td></tr>
+<tr><td>Cryo Attenuators</td><td><span class="pri">XMA Corp</span><span class="sec">→ Mini-Circuits, Atlantic Microwave, Quantum Microwave, Weinschel</span></td><td></td></tr>
+<tr><td>Cryo IR Filters</td><td><span class="pri">Sweden Quantum (HERD)</span><span class="sec">→ Bluefors OEM, K&L Microwave, custom eccosorb</span></td><td></td></tr>
+<tr><td>HEMT LNA (4K)</td><td><span class="pri">Low Noise Factory</span><span class="sec">→ Narda-MITEQ, Cosmic Microwave Tech, Caltech CITLF</span></td><td></td></tr>
+<tr><td class="cat">JPA (mK readout)</td><td><span class="pri">Raytheon BBN</span><span class="sec">→ Google (in-house), IBM (in-house), academic custom</span></td><td class="xctl">3A901</td></tr>
+<tr><td class="cat">TWPA (mK readout)</td><td><span class="pri">Silent Waves, QuantWare</span><span class="sec">→ mmWave Systems, Qubic Tech, MIT Lincoln Lab, RIKEN</span></td><td class="xctl">3A901</td></tr>
+<tr><td>Isolators / Circulators</td><td><span class="pri">Low Noise Factory</span><span class="sec">→ Quinstar Technology, Raditek, DiTom Microwave</span></td><td></td></tr>
+<tr><td>μWave Generators</td><td><span class="pri">Keysight, Rohde & Schwarz</span><span class="sec">→ Tabor Electronics, Tektronix, National Instruments</span></td><td></td></tr>
+<tr><td>AWG / HDAWG</td><td><span class="pri">Zurich Instruments</span><span class="sec">→ Keysight M8190A, Tabor Proteus, Tektronix AWG5200</span></td><td></td></tr>
+<tr><td>QC Orchestration</td><td><span class="pri">Quantum Machines (OPX+)</span><span class="sec">→ Qblox Cluster, Zurich SHFQC, Keysight custom</span></td><td></td></tr>
+<tr><td class="cat">QEC Decoder</td><td><span class="pri">Riverlane (Deltaflow)</span><span class="sec">→ Horizon Quantum, Google (in-house), IBM (in-house)</span></td><td></td></tr>
+<tr><td class="cat">SFQ Cryo-Control</td><td><span class="pri">SEEQC</span><span class="sec">→ Equal1 (cryo-CMOS), Intel Horse Ridge II, SFQ Labs</span></td><td class="xctl">3A901</td></tr>
+<tr><td>SQUID / JJ Fab</td><td><span class="pri">STAR Cryoelectronics</span><span class="sec">→ IMEC, VTT, Hypres, PTB Braunschweig</span></td><td></td></tr>
+<tr><td>Nb / NbTi Wire</td><td><span class="pri">CBMM (Brazil, 90% Nb)</span><span class="sec">→ Wah Chang (US), Ningxia Orient (CN), TVEL (RU)</span></td><td></td></tr>
+<tr><td>Magnetic Shielding</td><td><span class="pri">Amuneal (MuMetal)</span><span class="sec">→ Magnetic Shields Ltd (UK), Aaronia (DE)</span></td><td></td></tr>
+<tr><td class="cat">Cryo Wafer Prober</td><td><span class="pri">FormFactor (HPD)</span><span class="sec">→ Bluefors Cryogenic Prober, Lake Shore</span></td><td class="xctl">3B904</td></tr>
+</table></div>
+
+<div class="card"><div class="card-t"><span class="badge b-w">FULL BOM</span> Trapped Ion QC — Primary + Secondary Vendors</div>
+<table class="bom"><tr><th>Component</th><th>Primary → Secondary</th><th></th></tr>
+<tr><td class="cat">UHV Chamber</td><td><span class="pri">Kimball Physics, Kurt J. Lesker</span><span class="sec">→ MDC Vacuum, Nor-Cal Products, Hositrad, Pfeiffer custom</span></td><td></td></tr>
+<tr><td>Ion / Turbo Pumps</td><td><span class="pri">Pfeiffer Vacuum</span><span class="sec">→ Agilent (Varian), Edwards, Leybold</span></td><td></td></tr>
+<tr><td>Getters / Alkali Disp.</td><td><span class="pri">SAES Getters</span><span class="sec">→ Alvatec Alkali Vacuum Tech</span></td><td></td></tr>
+<tr><td class="cat">Cooling Lasers</td><td><span class="pri">TOPTICA Photonics</span><span class="sec">→ M Squared, Coherent, NKT Photonics, Hübner C-WAVE</span></td><td></td></tr>
+<tr><td class="cat">Gate / Raman Lasers</td><td><span class="pri">TOPTICA (355nm), Coherent</span><span class="sec">→ M Squared SolsTiS, Spectra-Physics (MKS)</span></td><td></td></tr>
+<tr><td>Frequency Combs</td><td><span class="pri">Menlo Systems</span><span class="sec">→ Vescent RUBRIComb, TOPTICA FFC, NKT SuperK</span></td><td></td></tr>
+<tr><td class="cat">AOMs / AODs</td><td><span class="pri">AA Opto-Electronic</span><span class="sec">→ Gooch & Housego, Brimrose, IntraAction, Isomet</span></td><td></td></tr>
+<tr><td>EOMs</td><td><span class="pri">Qubig</span><span class="sec">→ iXblue/Exail, Thorlabs, Jenoptik</span></td><td></td></tr>
+<tr><td>PM Fiber / Optics</td><td><span class="pri">Thorlabs</span><span class="sec">→ OZ Optics, Schäfter+Kirchhoff, Newport/MKS</span></td><td></td></tr>
+<tr><td>Ultra-Stable Cavities</td><td><span class="pri">Stable Laser Systems</span><span class="sec">→ Menlo Systems, Advanced Thin Films (custom)</span></td><td></td></tr>
+<tr><td>Imaging (EMCCD/sCMOS)</td><td><span class="pri">Andor (Oxford Inst.)</span><span class="sec">→ Hamamatsu ORCA, Teledyne Princeton, PCO</span></td><td></td></tr>
+<tr><td>Ion Trap Chip</td><td><span class="pri">In-house litho (Si/SiO₂)</span><span class="sec">→ Sandia Microsystems, Infineon (custom), IMEC</span></td><td class="xctl">4A906</td></tr>
+<tr><td>RF Drive Electronics</td><td><span class="pri">Keysight, Quantum Machines</span><span class="sec">→ Qblox, Tabor, NI/Ettus USRP</span></td><td></td></tr>
+</table></div>
+
+<div class="card"><div class="card-t"><span class="badge b-i">FULL BOM</span> Neutral Atom QC</div>
+<table class="bom"><tr><th>Component</th><th>Primary → Secondary</th></tr>
+<tr><td>Rb/Sr Atom Sources</td><td><span class="pri">SAES Getters</span><span class="sec">→ Alvatec, Rubidium sources (Quebec/Namibia)</span></td></tr>
+<tr><td>Optical Tweezers (SLM)</td><td><span class="pri">Hamamatsu X13138</span><span class="sec">→ Thorlabs, Meadowlark, Holoeye</span></td></tr>
+<tr><td>Trapping Lasers</td><td><span class="pri">TOPTICA DL Pro / TA Pro</span><span class="sec">→ M Squared, Coherent, Sacher Lasertechnik</span></td></tr>
+<tr><td>Rydberg Excitation</td><td><span class="pri">TOPTICA (UV SHG)</span><span class="sec">→ Hübner C-WAVE, Coherent MBD-200</span></td></tr>
+<tr><td>AODs (2D Steering)</td><td><span class="pri">AA Opto-Electronic</span><span class="sec">→ Gooch & Housego, IntraAction</span></td></tr>
+<tr><td>UHV Glass Cell</td><td><span class="pri">ColdQuanta / Precision Glassblowing</span><span class="sec">→ Japan Cell, Kimball custom</span></td></tr>
+<tr><td>sCMOS Camera</td><td><span class="pri">Andor Zyla/Marana</span><span class="sec">→ Hamamatsu ORCA-Quest, Teledyne Kinetix</span></td></tr>
+<tr><td>PICs</td><td><span class="pri">Infleqtion PICs</span><span class="sec">→ LiGenTec Si₃N₄, Lionix International</span></td></tr>
+</table></div>
+
+<div class="card"><div class="card-t"><span class="badge b-i">FULL BOM</span> QKD System</div>
+<table class="bom"><tr><th>Component</th><th>Primary → Secondary</th></tr>
+<tr><td>Single-Photon Sources</td><td><span class="pri">Quandela (QD SPS)</span><span class="sec">→ Sparrow Quantum, PicoQuant, Thorlabs SPDC</span></td></tr>
+<tr><td>SNSPD Detectors</td><td><span class="pri">Single Quantum, Photon Spot</span><span class="sec">→ Quantum Opus, Pixel Photonics, Scontel</span></td></tr>
+<tr><td>InGaAs SPAD</td><td><span class="pri">ID Quantique</span><span class="sec">→ Hamamatsu, Aurea Technology, Micro Photon Devices</span></td></tr>
+<tr><td>QRNG Modules</td><td><span class="pri">ID Quantique</span><span class="sec">→ Quside, Quantinuum (Origin), QuantumCTek</span></td></tr>
+<tr><td>Fiber Modulators</td><td><span class="pri">Lumentum</span><span class="sec">→ iXblue/Exail, Thorlabs, EOSpace</span></td></tr>
+<tr><td>WDM Multiplexers</td><td><span class="pri">Lumentum, Ciena</span><span class="sec">→ II-VI/Coherent, Finisar, DiCon</span></td></tr>
+<tr><td>QKM Software</td><td><span class="pri">Toshiba (ETSI Q-KMS)</span><span class="sec">→ QuantumCTek, ID Quantique, Quantum Xchange</span></td></tr>
+<tr><td>PQC Co-Processors</td><td><span class="pri">NXP, Infineon</span><span class="sec">→ PQShield, ISARA, Thales, Rambus</span></td></tr>
+</table></div>
+
+<div class="card"><div class="card-t"><span class="badge b-w">HS CODE BOM</span> Semiconductor Fab Equipment for Quantum</div>
+<table class="bom"><tr><th>Equipment (HS Code)</th><th>Primary → Secondary</th><th>Ctrl</th></tr>
+<tr><td class="cat">PVD Systems (848620)</td><td><span class="pri">Kurt J. Lesker, Applied Materials</span><span class="sec">→ Veeco, ULVAC, Semicore, PVD Products</span></td><td class="xctl">848620</td></tr>
+<tr><td class="cat">CVD/PECVD (848620)</td><td><span class="pri">Applied Materials, Lam Research</span><span class="sec">→ Tokyo Electron, Oxford Inst. Plasma, CVD Equip. Corp</span></td><td class="xctl">848620</td></tr>
+<tr><td class="cat">ALD Systems (848620)</td><td><span class="pri">ASM International, Veeco</span><span class="sec">→ Kurt J. Lesker, Oxford Inst., Beneq, Forge Nano</span></td><td class="xctl">848620</td></tr>
+<tr><td class="cat">RIE/ICP Etch (848620)</td><td><span class="pri">Plasma-Therm, Lam Research</span><span class="sec">→ Oxford Inst. Plasma, SPTS/KLA, Tokyo Electron</span></td><td class="xctl">848620</td></tr>
+<tr><td class="cat">Mask Aligners (848620)</td><td><span class="pri">SUSS MicroTec</span><span class="sec">→ ASML (DUV/EUV), Canon, Nikon, Heidelberg</span></td><td class="xctl">848620</td></tr>
+<tr><td>Laser Systems (901320)</td><td><span class="pri">TOPTICA, Coherent, M Squared</span><span class="sec">→ Spectra-Physics/MKS, Trumpf, NKT, Hübner</span></td><td></td></tr>
+<tr><td>Diode Lasers (854141)</td><td><span class="pri">TOPTICA, Lumentum</span><span class="sec">→ Ushio, ams-OSRAM, Hamamatsu, Thorlabs</span></td><td></td></tr>
+<tr><td>RF/μWave Amp ICs (854233)</td><td><span class="pri">Analog Devices, Qorvo</span><span class="sec">→ Mini-Circuits, Skyworks, NXP, Broadcom</span></td><td></td></tr>
+<tr><td>Photon Detectors (903089)</td><td><span class="pri">Single Quantum, Hamamatsu</span><span class="sec">→ Teledyne, Laser Components, Photon Spot, ID Quantique</span></td><td></td></tr>
+<tr><td>Vacuum Pumps (841410)</td><td><span class="pri">Pfeiffer Vacuum, Agilent</span><span class="sec">→ Edwards Vacuum, Leybold/Atlas Copco, Busch</span></td><td></td></tr>
+<tr><td>AWGs (854320)</td><td><span class="pri">Keysight, Zurich Instruments</span><span class="sec">→ Tektronix AWG5200, Tabor, National Instruments</span></td><td></td></tr>
+<tr><td>Rb Atomic Clocks (910690)</td><td><span class="pri">Microchip/Microsemi</span><span class="sec">→ Oscilloquartz, Infleqtion, Vector Atomic</span></td><td></td></tr>
+<tr><td>Optical Components (900190)</td><td><span class="pri">Thorlabs, Edmund Optics</span><span class="sec">→ Newport/MKS, CVI Laser Optics, OptoSigma</span></td><td></td></tr>
+<tr><td>GaAs Substrates (381800)</td><td><span class="pri">AXT Inc, II-VI/Coherent</span><span class="sec">→ Sumitomo Electric, Freiberger, China Crystal Tech</span></td><td></td></tr>
+<tr><td>InP Substrates (285390)</td><td><span class="pri">Sumitomo Electric, AXT</span><span class="sec">→ InPact (FR), JX Nippon, Wafer Technology (UK)</span></td><td></td></tr>
+<tr><td>SiC Substrates (284920)</td><td><span class="pri">Wolfspeed/Cree</span><span class="sec">→ Coherent/II-VI, SK Siltron, Soitec</span></td><td></td></tr>
+<tr><td>LiNbO₃ Crystals (382499)</td><td><span class="pri">Covesion (UK)</span><span class="sec">→ HC Photonics, G&H, Thorlabs PPLN</span></td><td></td></tr>
+<tr><td>Power Supplies (850440)</td><td><span class="pri">Stahl Electronics, Keithley</span><span class="sec">→ SRS (Stanford Research), Yokogawa, NI</span></td><td></td></tr>
+</table></div>
+
+<div class="card"><div class="card-t"><span class="badge b-c">ANALYSIS</span> Chokepoint Summary</div><div class="card-b" style="font-size:13px">
+<b style="color:#ff1744">① Dilution Fridges:</b> 2 dominant + 8 secondary. 6-9mo lead. >$500K. ECCN 3B903.<br><br>
+<b style="color:#ff1744">② He-3:</b> Single source (nuclear byproduct). No scale plan. All DR-dependent modalities gated.<br><br>
+<b style="color:#ff1744">③ Parametric Amplifiers (JPA/TWPA):</b> 5 commercial vendors, mostly handcrafted. ECCN 3A901. Scaling bottleneck.<br><br>
+<b style="color:#ff6d00">④ Precision Lasers:</b> TOPTICA dominant for ion/atom. 5-10 lasers per QC. EU concentration. NOT yet export controlled.<br><br>
+<b style="color:#ff6d00">⑤ Niobium:</b> Brazil CBMM = 90% global. No diversification for ultra-pure grade.<br><br>
+<b style="color:#ff6d00">⑥ RE Processing:</b> China 91%. Controls on Er, Yb, Gd, Ga, Ge impact photonics & cryo directly.
+</div></div>
+
+<div class="card"><div class="card-t"><span class="badge b-i">CONCLUSIONS</span> Strategic Patterns</div><div class="card-b" style="font-size:13px">
+<b>① US-EU-AU trilateral</b> dominates QPU + components but mineral dependency on CN/BR creates structural exposure.<br><br>
+<b>② Delft = silent powerhouse</b> — Qblox, Delft Circuits, Single Quantum, QuantWare, Leiden Cryo all within 5km.<br><br>
+<b>③ Munich = laser corridor</b> — TOPTICA, Menlo, Qubig, Rohde & Schwarz, Siltronic, Hübner all within 50km.<br><br>
+<b>④ Export controls have gaps</b> — lasers, vacuum, AOMs, control electronics remain uncontrolled despite being critical for trapped-ion/atom systems.<br><br>
+<b>⑤ China localizing fast</b> — 3+ domestic DR makers, full-stack QPU, world's largest QKD network. BIS listings accelerating, not blocking.<br><br>
+<b>⑥ "Modality-agnostic" suppliers</b> (control electronics, RF) serve ALL qubit types — lowest risk, highest leverage.
+</div></div>
+
+<div class="card"><div class="card-t"><span class="badge b-i">DATA</span> Geographic Distribution</div>
+${[['🇺🇸 United States','37%','var(--a)'],['🇪🇺 EU + EEA','24%','var(--a2)'],['🇬🇧 United Kingdom','8%','var(--a3)'],['🇨🇳 China','7%','var(--a5)'],['🇨🇦 Canada','6%','var(--a4)'],['🇦🇺 Australia','4%','#ff9100'],['🇨🇭 Switzerland','3%','#80deea'],['🇯🇵 Japan','3%','#ea80fc'],['🇮🇱 Israel','2%','#69f0ae'],['🌍 Other','6%','var(--t3)']].map(([l,v,c])=>`<div class="stat"><span class="sl">${l}</span><span class="sv" style="color:${c}">${v}</span></div>`).join('')}
+</div>`;
+}
+
+// ============ INIT ============
+document.getElementById('kpiCount').textContent=D.length;
+document.getElementById('search').placeholder=`Search ${D.length} entities...`;
+renderTabs();renderChips();renderList();renderLegend();buildMarkers();buildRP();
+
+// Ensure Leaflet map renders tiles correctly after layout settles
+setTimeout(()=>map.invalidateSize(),200);
+window.addEventListener('resize',()=>{map.invalidateSize();});
+</script>
+</body>
+</html>
