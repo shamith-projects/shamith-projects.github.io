@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quantum Algorithms Atlas — 2025/26</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;800&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --bg-2: #12141c;
+    --panel: #161823;
+    --line: #232638;
+    --ink: #e8e6df;
+    --ink-dim: #8a8a9a;
+    --ink-dimmer: #55586a;
+    --cyan: #d4af37;
+    --gold: #d4af37;
+    --gold-bright: #f0cc5b;
+    --gold-deep: #a8862a;
+    --magenta: #ff4fa8;
+    --amber: #f5c96a;
+    --violet: #9b8cff;
+    --red: #ff5a4f;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --serif: 'Fraunces', Georgia, serif;
+
+    --cat-search: #7dd3c0;
+    --cat-crypto: #ff4fa8;
+    --cat-linalg: #9b8cff;
+    --cat-ml:     #f5c96a;
+    --cat-graph:  #68b3ff;
+    --cat-samp:   #ff8a5a;
+    --cat-found:  #c0c0c0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); font-family: var(--serif); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+
+  body {
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(94,240,212,0.07), transparent 45%),
+      radial-gradient(circle at 85% 30%, rgba(255,79,168,0.06), transparent 40%),
+      radial-gradient(circle at 50% 90%, rgba(155,140,255,0.05), transparent 50%);
+    min-height: 100vh;
+  }
+
+  /* subtle grain */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.035 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    pointer-events: none; z-index: 0; opacity: .6;
+  }
+
+  .wrap { max-width: 1440px; margin: 0 auto; padding: 32px 40px 120px; position: relative; z-index: 1; }
+
+  /* ————— HEADER ————— */
+  .topbar { display: flex; justify-content: space-between; align-items: center; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-dim); padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .topbar .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); margin-right: 8px; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  header.hero { padding: 64px 0 40px; border-bottom: 1px solid var(--line); position: relative; }
+  .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--cyan); margin-bottom: 22px; }
+  h1.title {
+    font-family: var(--serif); font-weight: 300;
+    font-size: clamp(48px, 7vw, 104px);
+    line-height: 0.95; letter-spacing: -0.03em;
+    font-variation-settings: "opsz" 144;
+  }
+  h1.title em {
+    font-style: italic; font-weight: 500;
+    background: linear-gradient(135deg, #f0cc5b 0%, #d4af37 45%, #a8862a 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+    text-shadow: 0 0 40px rgba(212,175,55,0.25);
+  }
+  h1.title .mag { color: var(--magenta); font-weight: 500; font-style: italic; }
+  .lede { max-width: 720px; margin-top: 28px; color: var(--ink-dim); font-size: 18px; font-family: var(--serif); }
+  .lede strong { color: var(--ink); font-weight: 500; }
+
+  .meta-row { display: flex; gap: 48px; margin-top: 40px; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; }
+  .meta-row div { color: var(--ink-dimmer); }
+  .meta-row div span { display: block; color: var(--ink); font-size: 22px; font-family: var(--serif); font-weight: 500; margin-bottom: 2px; letter-spacing: -0.01em; }
+  .meta-row div span.cy { color: var(--cyan); }
+  .meta-row div span.mg { color: var(--magenta); }
+  .meta-row div span.am { color: var(--amber); }
+  .meta-row div span.vi { color: var(--violet); }
+
+  /* ————— SECTION STYLE ————— */
+  section { padding: 72px 0 24px; }
+  .section-head { display: flex; align-items: baseline; gap: 24px; margin-bottom: 36px; }
+  .section-head .num { font-family: var(--mono); font-size: 11px; color: var(--ink-dimmer); letter-spacing: 0.2em; }
+  .section-head h2 { font-family: var(--serif); font-weight: 400; font-size: 34px; letter-spacing: -0.02em; }
+  .section-head h2 em { font-style: italic; color: var(--cyan); }
+  .section-head .rule { flex: 1; height: 1px; background: var(--line); }
+
+  /* ————— PUBLICATIONS / BREAKTHROUGHS ————— */
+  .pub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+  .pub {
+    border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+    padding: 28px 26px; position: relative; background: var(--bg); transition: background 0.3s;
+  }
+  .pub:hover { background: var(--panel); }
+  .pub .date { font-family: var(--mono); font-size: 10px; color: var(--cyan); letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 10px; }
+  .pub h3 { font-family: var(--serif); font-size: 19px; font-weight: 500; letter-spacing: -0.01em; margin-bottom: 10px; line-height: 1.3; }
+  .pub p { font-size: 14px; color: var(--ink-dim); line-height: 1.55; }
+  .pub .tag { font-family: var(--mono); font-size: 10px; color: var(--ink-dimmer); text-transform: uppercase; letter-spacing: 0.15em; margin-top: 14px; display: block; }
+
+  /* ————— CONTROLS ————— */
+  .controls { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; padding: 20px 24px; background: var(--panel); border: 1px solid var(--line); margin-bottom: 2px; }
+  .search { flex: 1; min-width: 260px; background: transparent; border: none; border-bottom: 1px solid var(--ink-dimmer); color: var(--ink); font-family: var(--mono); font-size: 13px; padding: 8px 2px; outline: none; }
+  .search:focus { border-color: var(--cyan); }
+  .search::placeholder { color: var(--ink-dimmer); }
+  .chipgroup { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 6px 11px; background: transparent; border: 1px solid var(--line); color: var(--ink-dim); cursor: pointer; transition: all 0.15s;
+  }
+  .chip:hover { border-color: var(--ink-dim); color: var(--ink); }
+  .chip.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .chip .count { opacity: 0.5; margin-left: 6px; }
+
+  /* ————— LAYOUT: charts + cards ————— */
+  .layout { display: grid; grid-template-columns: 1fr 1.3fr; gap: 2px; background: var(--line); }
+  .layout > * { background: var(--bg); }
+  .chart-col { padding: 28px 26px; border: 1px solid var(--line); }
+  .chart-box { margin-bottom: 40px; }
+  .chart-box:last-child { margin-bottom: 0; }
+  .chart-box h3 { font-family: var(--mono); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 14px; }
+  .chart-box .subtitle { font-family: var(--serif); font-style: italic; color: var(--ink-dimmer); font-size: 13px; margin-bottom: 18px; }
+  .chart-wrap { position: relative; height: 240px; }
+  .chart-wrap.tall { height: 300px; }
+
+  /* ————— CARDS ————— */
+  .cards { padding: 0; border: 1px solid var(--line); display: flex; flex-direction: column; max-height: 1100px; overflow-y: auto; }
+  .cards::-webkit-scrollbar { width: 6px; }
+  .cards::-webkit-scrollbar-track { background: var(--bg-2); }
+  .cards::-webkit-scrollbar-thumb { background: var(--line); }
+
+  .card {
+    padding: 22px 26px; border-bottom: 1px solid var(--line); cursor: pointer;
+    transition: background 0.2s; position: relative;
+  }
+  .card:last-child { border-bottom: none; }
+  .card:hover { background: var(--panel); }
+  .card.open { background: var(--panel); }
+  .card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--cat); opacity: 0.7;
+  }
+  .card-top { display: flex; justify-content: space-between; gap: 16px; align-items: start; }
+  .card-name { font-family: var(--serif); font-size: 24px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.15; }
+  .card-name em { font-style: italic; color: var(--cat); }
+  .card-cat { font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-dimmer); margin-top: 4px; }
+  .badge {
+    font-family: var(--mono); font-size: 10px; padding: 4px 8px; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap;
+    border: 1px solid; align-self: start;
+  }
+  .badge.Ready { color: #7dd3c0; border-color: #7dd3c0; }
+  .badge.Partial { color: var(--amber); border-color: var(--amber); }
+  .badge.Experimental { color: var(--violet); border-color: var(--violet); }
+  .badge.Not.Yet { color: var(--red); border-color: var(--red); }
+
+  .card-row { display: flex; gap: 28px; margin-top: 14px; font-family: var(--mono); font-size: 11px; color: var(--ink-dim); }
+  .card-row span b { color: var(--ink); font-weight: 400; display: block; font-family: var(--serif); font-size: 14px; margin-top: 2px; }
+  .card-detail { overflow: hidden; max-height: 0; transition: max-height 0.4s ease; }
+  .card.open .card-detail { max-height: 800px; }
+  .detail-body { padding-top: 20px; margin-top: 18px; border-top: 1px dashed var(--line); }
+  .detail-body p { font-size: 14px; color: var(--ink-dim); line-height: 1.6; margin-bottom: 12px; }
+  .detail-body p b { color: var(--ink); font-family: var(--mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 400; display: block; margin-bottom: 4px; color: var(--cat); }
+  .detail-body .src { font-family: var(--mono); font-size: 11px; color: var(--ink-dimmer); line-height: 1.5; }
+
+  /* ————— SCATTER / FOOTER ————— */
+  .fullwidth-chart { border: 1px solid var(--line); padding: 28px 32px; margin-top: 2px; background: var(--bg); }
+  .fullwidth-chart .chart-wrap { height: 380px; }
+
+  footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11px; color: var(--ink-dimmer); letter-spacing: 0.1em; display: flex; justify-content: space-between; }
+  footer a { color: var(--ink-dim); text-decoration: none; }
+
+  @media (max-width: 960px) {
+    .pub-grid { grid-template-columns: repeat(2, 1fr); }
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+  /* ————— RESPONSIVE ————— */
+  @media (max-width: 1100px) {
+    .pub-grid { grid-template-columns: repeat(2, 1fr); }
+    .layout { grid-template-columns: 1fr; }
+    .cards { max-height: none; }
+  }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 16px 18px 80px; }
+    .topbar { font-size: 10px; letter-spacing: 0.12em; flex-direction: column; align-items: flex-start; gap: 6px; padding-bottom: 10px; }
+
+    header.hero { padding: 40px 0 32px; }
+    .kicker { font-size: 10px; letter-spacing: 0.22em; margin-bottom: 16px; }
+    h1.title { font-size: clamp(38px, 11vw, 60px); line-height: 1; }
+    .lede { font-size: 16px; margin-top: 22px; }
+    .meta-row { gap: 20px 28px; margin-top: 28px; }
+    .meta-row div span { font-size: 18px; }
+
+    section { padding: 48px 0 16px; }
+    .section-head { gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
+    .section-head h2 { font-size: 24px; }
+    .section-head .rule { display: none; }
+
+    .pub-grid { grid-template-columns: 1fr; }
+    .pub { padding: 22px 20px; }
+    .pub h3 { font-size: 17px; }
+
+    .controls { padding: 16px; gap: 12px; }
+    .search { width: 100%; min-width: 0; flex-basis: 100%; }
+    .chipgroup { width: 100%; }
+    .chip { font-size: 10px; padding: 5px 9px; }
+
+    .chart-col { padding: 22px 18px; }
+    .chart-wrap { height: 220px; }
+    .chart-wrap.tall { height: 260px; }
+
+    .card { padding: 18px 20px; }
+    .card-name { font-size: 20px; }
+    .card-top { flex-direction: column; }
+    .badge { align-self: flex-start; }
+    .card-row { gap: 18px; flex-wrap: wrap; }
+
+    .fullwidth-chart { padding: 22px 18px; }
+    .fullwidth-chart .chart-wrap { height: 420px; }
+
+    footer { margin-top: 48px; flex-direction: column; gap: 8px; }
+  }
+
+  @media (max-width: 420px) {
+    h1.title { font-size: 34px; }
+    .meta-row { gap: 16px 22px; }
+    .meta-row div span { font-size: 16px; }
+    .section-head h2 { font-size: 20px; }
+    .section-head .num { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div><span class="dot"></span>Live dataset · 24 algorithms tracked</div>
+    <div>Quantum Algorithms Atlas / Edition 2026.04</div>
+  </div>
+
+  <header class="hero">
+    <div class="kicker">§ Interactive research dashboard — April 2026</div>
+    <h1 class="title">The state of<br><em>quantum</em> algorithms,<br>in <span class="mag">twenty-four</span> methods.</h1>
+    <p class="lede">
+      A reference atlas pairing a curated dataset of <strong>24 quantum computing algorithms</strong>
+      with the most consequential publications and breakthroughs of the 2025 research year — the
+      UN-designated <em>International Year of Quantum Science and Technology</em>. Filter, search,
+      and drill into each method to see where it stands on the NISQ-to-fault-tolerant continuum.
+    </p>
+    <div class="meta-row">
+      <div><span class="cy">24</span>algorithms catalogued</div>
+      <div><span class="mg">7</span>research categories</div>
+      <div><span class="am">8</span>NISQ-ready today</div>
+      <div><span class="vi">7</span>awaiting fault tolerance</div>
+      <div><span>$10B</span>government investment · 2025</div>
+    </div>
+  </header>
+
+  <!-- ============ PUBLICATIONS ============ -->
+  <section>
+    <div class="section-head">
+      <div class="num">01</div>
+      <h2>Signal from the <em>literature</em></h2>
+      <div class="rule"></div>
+    </div>
+    <p style="max-width:780px; color: var(--ink-dim); margin-bottom: 32px; font-size: 17px;">
+      Six developments from 2025–2026 that have materially shifted the field's roadmap — gathered
+      from Nature, arXiv preprints, IBM and Google research disclosures, and industry reporting.
+    </p>
+    <div class="pub-grid">
+      <div class="pub">
+        <div class="date">May 2025 · arXiv</div>
+        <h3>Shor's algorithm resource estimate collapses 20×</h3>
+        <p>Craig Gidney (Google Quantum AI) shows RSA-2048 could be broken in under a week with fewer than one million noisy qubits — down from his own 2019 estimate of ~20 million.</p>
+        <span class="tag">→ Shor's · Cryptography</span>
+      </div>
+      <div class="pub">
+        <div class="date">Oct 2025 · Nature</div>
+        <h3>Google's "Quantum Echoes" on 65-qubit processor</h3>
+        <p>First verifiable beyond-classical demonstration of the second-order out-of-time-order correlator OTOC(2) — a measurement no classical supercomputer could reproduce.</p>
+        <span class="tag">→ Sampling · Foundational</span>
+      </div>
+      <div class="pub">
+        <div class="date">Nov 2025 · IBM Research</div>
+        <h3>IBM Nighthawk & Loon announced</h3>
+        <p>120-qubit Nighthawk targets quantum advantage by end-2026; experimental Loon processor demonstrates all components of fault-tolerant architecture, with qLDPC decoding in under 480 ns.</p>
+        <span class="tag">→ Hardware · Error correction</span>
+      </div>
+      <div class="pub">
+        <div class="date">Mar 2025 · Industry</div>
+        <h3>IonQ + Ansys: 12% advantage on medical-device sim</h3>
+        <p>On a 36-qubit trapped-ion processor, a real engineering workload outperformed classical HPC — one of the first documented instances of practical quantum advantage outside sampling.</p>
+        <span class="tag">→ VQE · Materials</span>
+      </div>
+      <div class="pub">
+        <div class="date">2025 · QuEra</div>
+        <h3>Algorithmic fault tolerance cuts overhead 100×</h3>
+        <p>New error-correction techniques on neutral-atom hardware reduce the physical-qubit tax by up to two orders of magnitude, materially accelerating the path to fault tolerance.</p>
+        <span class="tag">→ Error correction</span>
+      </div>
+      <div class="pub">
+        <div class="date">Mar 2026 · Nature</div>
+        <h3>Oratomic: RSA-2048 with 10,000 reconfigurable qubits</h3>
+        <p>Building on the Sept 2025 Caltech demonstration of a 6,100-atom tweezer array, a neutral-atom architecture paper suggests cryptographic relevance at &lt;5% of prior qubit estimates.</p>
+        <span class="tag">→ Shor's · Neutral atom</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ EXPLORER ============ -->
+  <section>
+    <div class="section-head">
+      <div class="num">02</div>
+      <h2>The <em>atlas</em>, filtered & cross-referenced</h2>
+      <div class="rule"></div>
+    </div>
+
+    <div class="controls">
+      <input type="text" class="search" id="search" placeholder="search algorithms, use cases, companies…">
+      <div class="chipgroup" id="catchips"></div>
+      <div class="chipgroup" id="statuschips"></div>
+    </div>
+
+    <div class="layout">
+      <div class="chart-col">
+        <div class="chart-box">
+          <h3>By category</h3>
+          <div class="subtitle">Distribution of the 24 catalogued methods</div>
+          <div class="chart-wrap"><canvas id="catChart"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <h3>NISQ-era viability</h3>
+          <div class="subtitle">How much of the field is already deployable</div>
+          <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <h3>Algorithms by speedup class</h3>
+          <div class="subtitle">Exponential is the holy grail; heuristic is today's workhorse</div>
+          <div class="chart-wrap"><canvas id="speedupChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="cards" id="cards"></div>
+    </div>
+
+    <div class="fullwidth-chart">
+      <h3 style="font-family:var(--mono); font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:var(--ink-dim); margin-bottom: 4px;">Qubit footprint × readiness</h3>
+      <div class="subtitle" style="font-family:var(--serif); font-style:italic; color:var(--ink-dimmer); font-size:13px; margin-bottom: 20px;">
+        Log-scale qubit requirements by category. Bubble size encodes the upper end of the stated range;
+        click a point to jump to its entry.
+      </div>
+      <div class="chart-wrap"><canvas id="scatterChart"></canvas></div>
+    </div>
+
+  </section>
+
+  <footer>
+    <div>Author: Shamith P.</div>
+  </footer>
+
+</div>
+
+<script>
+const CAT_COLORS = {
+  'Search & Optimization': getComputedStyle(document.documentElement).getPropertyValue('--cat-search').trim(),
+  'Cryptography':          getComputedStyle(document.documentElement).getPropertyValue('--cat-crypto').trim(),
+  'Linear Algebra':        getComputedStyle(document.documentElement).getPropertyValue('--cat-linalg').trim(),
+  'Machine Learning':      getComputedStyle(document.documentElement).getPropertyValue('--cat-ml').trim(),
+  'Graph':                 getComputedStyle(document.documentElement).getPropertyValue('--cat-graph').trim(),
+  'Sampling':              getComputedStyle(document.documentElement).getPropertyValue('--cat-samp').trim(),
+  'Foundational':          getComputedStyle(document.documentElement).getPropertyValue('--cat-found').trim(),
+};
+const STATUS_COLORS = {
+  'Ready':        '#7dd3c0',
+  'Partial':      '#f5c96a',
+  'Experimental': '#9b8cff',
+  'Not Yet':      '#ff5a4f',
+};
+
+const DATA = [{"algorithm": "Grover's", "category": "Search & Optimization", "speedup": "Quadratic O(\u221aN)", "useCases": "Database search, password cracking, SAT solving", "architecture": "Gate-based (any)", "qubits": {"min": 10, "max": 1000, "text": "~10\u201330 (demo); ~1000s (practical)"}, "qubitsText": "~10\u201330 (demo); ~1000s (practical)", "status": "Partial", "statusDetail": "Demonstrated on small scales; meaningful speedup requires error-corrected qubits beyond current NISQ hardware", "companies": "IBM, Google, IonQ, Quantinuum \u2014 all major gate-based vendors include Grover demos in their SDKs (Qiskit, Cirq, pytket)", "sources": "Grover, L.K. (1996). STOC '96. ACM. doi:10.1145/237814.237866"}, {"algorithm": "QAOA", "category": "Search & Optimization", "speedup": "Heuristic", "useCases": "Logistics routing, portfolio optimization, scheduling", "architecture": "Gate-based / Superconducting", "qubits": {"min": 50, "max": 1000, "text": "50\u20131000 (NISQ-era)"}, "qubitsText": "50\u20131000 (NISQ-era)", "status": "Ready", "statusDetail": "Actively deployed on IBM, Rigetti, IonQ hardware; competitive with classical solvers on small instances", "companies": "IBM (Qiskit), Rigetti, IonQ, AWS (Braket), Google; startups: QC Ware, Zapata Computing, 1QBit", "sources": "Farhi, E. et al. (2014). arXiv:1411.4028"}, {"algorithm": "Quantum Annealing", "category": "Search & Optimization", "speedup": "Heuristic", "useCases": "Supply chain, drug discovery, financial modeling", "architecture": "Annealing (D-Wave)", "qubits": {"min": 2000, "max": 7000, "text": "2000\u20137000+ (D-Wave Advantage)"}, "qubitsText": "2000\u20137000+ (D-Wave Advantage)", "status": "Ready", "statusDetail": "Commercially available via D-Wave; used in production by Volkswagen, Lockheed Martin, and others", "companies": "D-Wave (dominant); Toshiba (Simulated Bifurcation Machine); Fujitsu (Digital Annealer); Hitachi", "sources": "Kadowaki & Nishimori (1998). Phys. Rev. E 58. doi:10.1103/PhysRevE.58.5355; D-Wave (2023). docs.dwavesys.com"}, {"algorithm": "Shor's", "category": "Cryptography", "speedup": "Exponential", "useCases": "Breaking RSA/ECC encryption, cybersecurity research", "architecture": "Gate-based (fault-tolerant)", "qubits": {"min": 2048, "max": 10000, "text": "~4000\u201310,000+ logical qubits for RSA-2048"}, "qubitsText": "~4000\u201310,000+ logical qubits for RSA-2048", "status": "Not Yet", "statusDetail": "Requires millions of physical qubits for error correction; far beyond NISQ capabilities; ~10\u201320 years away", "companies": "Google, IBM, Microsoft (research only); PsiQuantum (photonic fault-tolerant roadmap); government labs: NIST, DARPA", "sources": "Shor, P.W. (1994). FOCS '94. doi:10.1109/SFCS.1994.365700; Gidney & Eker\u00e5 (2021). Quantum 5, 433"}, {"algorithm": "QKD", "category": "Cryptography", "speedup": "N/A", "useCases": "Secure communications, military, banking", "architecture": "Photonic", "qubits": {"min": 1, "max": 2, "text": "1\u20132 (single photon qubits)"}, "qubitsText": "1\u20132 (single photon qubits)", "status": "Ready", "statusDetail": "Commercially deployed by Toshiba, ID Quantique, China's Micius satellite; does not require large qubit counts", "companies": "ID Quantique (Switzerland), Toshiba, MagiQ Technologies, QuantumCTek (China); deployed by HSBC, Deutsche Telekom", "sources": "Bennett & Brassard (1984). Proc. IEEE Int. Conf. Computers; Gisin et al. (2002). Rev. Mod. Phys. 74"}, {"algorithm": "Simon's", "category": "Cryptography", "speedup": "Exponential", "useCases": "Cryptanalysis, hidden subgroup problems", "architecture": "Gate-based (any)", "qubits": {"min": 10, "max": 50, "text": "~10\u201350"}, "qubitsText": "~10\u201350", "status": "Experimental", "statusDetail": "Demonstrated in lab settings; limited practical use; primarily a complexity theory result", "companies": "Academic / research focus: MIT, Caltech, University of Waterloo (IQC); IBM Research, Google Research", "sources": "Simon, D.R. (1994). FOCS '94. doi:10.1109/SFCS.1994.365701"}, {"algorithm": "HHL", "category": "Linear Algebra", "speedup": "Exponential*", "useCases": "Machine learning, fluid dynamics, financial risk", "architecture": "Gate-based (fault-tolerant)", "qubits": {"min": 100, "max": 1000, "text": "~100s\u20131000s logical qubits"}, "qubitsText": "~100s\u20131000s logical qubits", "status": "Not Yet", "statusDetail": "Input/output bottlenecks largely negate speedup in practice; needs fault-tolerant hardware; active research debate on utility", "companies": "IBM Research, Google, academic groups; McKinsey & Goldman Sachs exploring finance applications; utility debated since Tang (2019)", "sources": "Harrow, Hassidim & Lloyd (2009). Phys. Rev. Lett. 103. doi:10.1103/PhysRevLett.103.150502"}, {"algorithm": "QPE", "category": "Linear Algebra", "speedup": "Exponential", "useCases": "Chemistry simulation, eigenvalue problems", "architecture": "Gate-based (fault-tolerant)", "qubits": {"min": 100, "max": 10000, "text": "~100\u201310,000 depending on precision"}, "qubitsText": "~100\u201310,000 depending on precision", "status": "Not Yet", "statusDetail": "Deep circuits require error correction beyond NISQ; small-scale demos only; key subroutine for fault-tolerant era", "companies": "Microsoft (Azure Quantum), IBM, Google; pharmaceutical: Merck, Roche exploring future chemistry use cases", "sources": "Kitaev, A.Y. (1995). arXiv:quant-ph/9511026; Nielsen & Chuang (2000). Cambridge Univ. Press"}, {"algorithm": "VQE", "category": "Linear Algebra", "speedup": "Heuristic", "useCases": "Drug discovery, materials science, battery design", "architecture": "Gate-based / Superconducting / Trapped ion", "qubits": {"min": 10, "max": 100, "text": "10\u2013100 (NISQ-era)"}, "qubitsText": "10\u2013100 (NISQ-era)", "status": "Ready", "statusDetail": "Leading NISQ algorithm; run on IBM, IonQ, Quantinuum; used by Mitsubishi, JSR for materials research", "companies": "IBM, IonQ, Quantinuum, Rigetti; industry: Mitsubishi Chemical, JSR Corp, BASF, Mercedes-Benz (battery R&D)", "sources": "Peruzzo et al. (2014). Nature Commun. 5, 4213. doi:10.1038/ncomms5213"}, {"algorithm": "QFT", "category": "Linear Algebra", "speedup": "Exponential", "useCases": "Signal processing, Shor's subroutine, phase estimation", "architecture": "Gate-based (any)", "qubits": {"min": 10, "max": 50, "text": "~10\u201350 (subroutine use)"}, "qubitsText": "~10\u201350 (subroutine use)", "status": "Partial", "statusDetail": "Circuit demonstrated on NISQ devices; noise limits fidelity at scale; useful as subroutine in small circuits", "companies": "IBM, Google, Quantinuum \u2014 primarily as a subroutine; no standalone commercial product; used in benchmarking", "sources": "Coppersmith, D. (1994). IBM Research Report RC19642; Nielsen & Chuang (2000). Cambridge Univ. Press"}, {"algorithm": "QSVM", "category": "Machine Learning", "speedup": "Potential Exponential", "useCases": "Image classification, fraud detection, genomics", "architecture": "Gate-based / Superconducting", "qubits": {"min": 10, "max": 100, "text": "~10\u2013100 (NISQ-era)"}, "qubitsText": "~10\u2013100 (NISQ-era)", "status": "Experimental", "statusDetail": "Demonstrated on small datasets; quantum advantage unproven at scale; dequantization results raise questions", "companies": "IBM Research, QC Ware, Zapata; finance pilots: JPMorgan, Barclays; genomics: startups like Menten AI", "sources": "Rebentrost, Mohseni & Lloyd (2014). Phys. Rev. Lett. 113. doi:10.1103/PhysRevLett.113.130503"}, {"algorithm": "qPCA", "category": "Machine Learning", "speedup": "Exponential*", "useCases": "Data compression, anomaly detection, finance", "architecture": "Gate-based (fault-tolerant)", "qubits": {"min": 100, "max": 100, "text": "~100s logical qubits"}, "qubitsText": "~100s logical qubits", "status": "Not Yet", "statusDetail": "Dequantized by Tang (2019); classical algorithms match speedup; requires fault-tolerance for original claims", "companies": "IBM Research, MIT (academic); interest from Goldman Sachs, BBVA; practical utility under active debate post-dequantization", "sources": "Lloyd, Mohseni & Rebentrost (2014). Nature Physics 10. doi:10.1038/nphys3029"}, {"algorithm": "Quantum Boltzmann Machine", "category": "Machine Learning", "speedup": "Heuristic", "useCases": "Generative modeling, recommendation systems", "architecture": "Gate-based / Annealing", "qubits": {"min": 20, "max": 200, "text": "~20\u2013200 (NISQ-era)"}, "qubitsText": "~20\u2013200 (NISQ-era)", "status": "Experimental", "statusDetail": "Early-stage research; small prototypes on D-Wave and gate hardware; no demonstrated advantage over classical", "companies": "D-Wave (annealing-based), 1QBit; academic: University of Toronto, Vector Institute; Microsoft Research", "sources": "Amin et al. (2018). Phys. Rev. X 8. doi:10.1103/PhysRevX.8.021050"}, {"algorithm": "QNN", "category": "Machine Learning", "speedup": "Heuristic", "useCases": "Pattern recognition, optimization, classification", "architecture": "Gate-based / Superconducting", "qubits": {"min": 4, "max": 50, "text": "~4\u201350 (NISQ-era)"}, "qubitsText": "~4\u201350 (NISQ-era)", "status": "Partial", "statusDetail": "Actively explored on NISQ hardware; barren plateau problem limits trainability; no clear advantage shown yet", "companies": "IBM (Qiskit Machine Learning), Google (TensorFlow Quantum), PennyLane (Xanadu), Zapata; startups: Classiq, Multiverse Computing", "sources": "Biamonte et al. (2017). Nature 549. doi:10.1038/nature23474"}, {"algorithm": "Quantum Walk", "category": "Graph", "speedup": "Quadratic\u2013Exponential", "useCases": "Network analysis, search engines, triangle detection", "architecture": "Gate-based / Photonic", "qubits": {"min": 10, "max": 100, "text": "~10\u2013100"}, "qubitsText": "~10\u2013100", "status": "Experimental", "statusDetail": "Small-scale continuous and discrete walks demonstrated; noise degrades performance; not production-ready", "companies": "Xanadu (photonic), IBM Research, Google Research; academic: ETH Z\u00fcrich, Delft; no major commercial deployment", "sources": "Aharonov et al. (1993). Phys. Rev. A 48. doi:10.1103/PhysRevA.48.1687; Childs et al. (2003). STOC '03"}, {"algorithm": "Quantum MST", "category": "Graph", "speedup": "Quadratic", "useCases": "Network design, clustering, circuit layout", "architecture": "Gate-based (any)", "qubits": {"min": 20, "max": 200, "text": "~20\u2013200"}, "qubitsText": "~20\u2013200", "status": "Not Yet", "statusDetail": "Theoretical result only; no practical implementation on NISQ hardware demonstrated", "companies": "Academic groups only: CWI Amsterdam, MIT CSAIL, University of Maryland; no commercial implementations", "sources": "D\u00fcrr et al. (2006). SIAM J. Comput. 35(6). doi:10.1137/050644719"}, {"algorithm": "Quantum BFS/DFS", "category": "Graph", "speedup": "Quadratic", "useCases": "Pathfinding, social network analysis, game AI", "architecture": "Gate-based (any)", "qubits": {"min": 10, "max": 100, "text": "~10\u2013100"}, "qubitsText": "~10\u2013100", "status": "Not Yet", "statusDetail": "Theoretical; requires coherent oracle access and error correction; not feasible on current hardware", "companies": "Academic only: QuSoft (Amsterdam), Caltech, MIT; no commercial deployment or near-term roadmap", "sources": "Magniez et al. (2011). SIAM J. Comput. 40(1). doi:10.1137/090745854"}, {"algorithm": "Boson Sampling", "category": "Sampling", "speedup": "Exponential", "useCases": "Quantum supremacy benchmarking, molecular simulation", "architecture": "Photonic", "qubits": {"min": 50, "max": 100, "text": "~50\u2013100 photons"}, "qubitsText": "~50\u2013100 photons", "status": "Ready", "statusDetail": "Demonstrated by Jiuzhang (USTC, 2020) and Xanadu's Borealis (2022); first claimed quantum advantage results", "companies": "Xanadu (Borealis, PennyLane); USTC/China (Jiuzhang 1 & 2); QuiX Quantum; PsiQuantum (large-scale photonic roadmap)", "sources": "Aaronson & Arkhipov (2011). STOC '11. doi:10.1145/1993636.1993682"}, {"algorithm": "Quantum Monte Carlo", "category": "Sampling", "speedup": "Quadratic", "useCases": "Risk analysis, physics simulation, option pricing", "architecture": "Gate-based (fault-tolerant)", "qubits": {"min": 100, "max": 1000, "text": "~100s\u20131000s logical qubits"}, "qubitsText": "~100s\u20131000s logical qubits", "status": "Not Yet", "statusDetail": "Meaningful speedup needs fault-tolerant hardware; small circuit depth demos only on NISQ", "companies": "Goldman Sachs (finance QMC research), IBM Research, Google; JPMorgan Chase Quantum Computing team", "sources": "Montanaro, A. (2015). npj Quantum Information 2. doi:10.1038/npjqi.2015.23"}, {"algorithm": "IQP Sampling", "category": "Sampling", "speedup": "Exponential", "useCases": "Quantum advantage demonstration, complexity theory", "architecture": "Gate-based (any)", "qubits": {"min": 20, "max": 50, "text": "~20\u201350"}, "qubitsText": "~20\u201350", "status": "Experimental", "statusDetail": "Primarily a complexity theory tool; small circuits run on NISQ; limited real-world applications", "companies": "Academic: University of Bristol, Cambridge, Perimeter Institute; IBM and Google have run small experiments", "sources": "Shepherd & Bremner (2009). Proc. R. Soc. A 465. doi:10.1098/rspa.2008.0443"}, {"algorithm": "Deutsch-Jozsa", "category": "Foundational", "speedup": "Exponential", "useCases": "Teaching tool, oracle classification, proof of concept", "architecture": "Gate-based (any)", "qubits": {"min": 2, "max": 20, "text": "~2\u201320"}, "qubitsText": "~2\u201320", "status": "Ready", "statusDetail": "Routinely executed on IBM Quantum, Quantinuum, and others; standard in quantum education and benchmarking", "companies": "IBM (Qiskit tutorials), Google (Cirq), Quantinuum, IonQ \u2014 all include this as a standard educational demonstration", "sources": "Deutsch & Jozsa (1992). Proc. R. Soc. A 439. doi:10.1098/rspa.1992.0167"}, {"algorithm": "Bernstein-Vazirani", "category": "Foundational", "speedup": "Linear\u21921 query", "useCases": "Hidden pattern finding, cryptanalysis", "architecture": "Gate-based (any)", "qubits": {"min": 5, "max": 50, "text": "~5\u201350"}, "qubitsText": "~5\u201350", "status": "Ready", "statusDetail": "Demonstrated on all major NISQ platforms; used as a standard benchmarking circuit", "companies": "IBM, Google, IonQ, Quantinuum \u2014 universal adoption as a benchmarking standard; no commercial-specific ownership", "sources": "Bernstein & Vazirani (1997). SIAM J. Comput. 26(5). doi:10.1137/S0097539796300921"}, {"algorithm": "Amplitude Amplification", "category": "Foundational", "speedup": "Quadratic", "useCases": "Subroutine in search, optimization, Monte Carlo", "architecture": "Gate-based (any)", "qubits": {"min": 10, "max": 100, "text": "~10\u2013100"}, "qubitsText": "~10\u2013100", "status": "Partial", "statusDetail": "Core concept demonstrated; practical use limited by circuit depth and noise; useful in hybrid algorithms", "companies": "IBM, Google, Quantinuum \u2014 used as a subroutine; QC Ware and Zapata embed it in finance and optimization pipelines", "sources": "Brassard et al. (2002). Contemp. Math. 305. doi:10.1090/conm/305/05215"}, {"algorithm": "Quantum Teleportation", "category": "Foundational", "speedup": "N/A", "useCases": "Quantum networking, distributed quantum computing", "architecture": "Any (entanglement-based)", "qubits": {"min": 2, "max": 3, "text": "2\u20133 per teleportation channel"}, "qubitsText": "2\u20133 per teleportation channel", "status": "Ready", "statusDetail": "Demonstrated over 100s of km via fiber and satellite; key building block for quantum internet", "companies": "Toshiba, AT&T (quantum networking); Amazon (AWS quantum networking team); EU Quantum Internet Alliance; QuTech (Delft)", "sources": "Bennett et al. (1993). Phys. Rev. Lett. 70. doi:10.1103/PhysRevLett.70.1895"}];
+
+// ————— filter state —————
+const state = {
+  query: '',
+  category: 'all',
+  status: 'all',
+};
+
+// ————— build chip groups —————
+function buildChips() {
+  const cats = ['all', ...Object.keys(CAT_COLORS)];
+  const catCounts = DATA.reduce((a,r) => (a[r.category]=(a[r.category]||0)+1, a), {});
+  document.getElementById('catchips').innerHTML = cats.map(c => {
+    const n = c === 'all' ? DATA.length : (catCounts[c]||0);
+    const active = state.category === c ? ' active' : '';
+    return `<button class="chip${active}" data-cat="${c}">${c === 'all' ? 'All categories' : c}<span class="count">${n}</span></button>`;
+  }).join('');
+  const statuses = ['all','Ready','Partial','Experimental','Not Yet'];
+  const stCounts = DATA.reduce((a,r) => (a[r.status]=(a[r.status]||0)+1, a), {});
+  document.getElementById('statuschips').innerHTML = statuses.map(s => {
+    const n = s === 'all' ? DATA.length : (stCounts[s]||0);
+    const active = state.status === s ? ' active' : '';
+    return `<button class="chip${active}" data-st="${s}">${s}<span class="count">${n}</span></button>`;
+  }).join('');
+  document.querySelectorAll('[data-cat]').forEach(el => el.addEventListener('click', () => { state.category = el.dataset.cat; buildChips(); renderCards(); }));
+  document.querySelectorAll('[data-st]').forEach(el => el.addEventListener('click', () => { state.status = el.dataset.st; buildChips(); renderCards(); }));
+}
+
+// ————— render cards —————
+function getFiltered() {
+  const q = state.query.toLowerCase();
+  return DATA.filter(r => {
+    if (state.category !== 'all' && r.category !== state.category) return false;
+    if (state.status !== 'all' && r.status !== state.status) return false;
+    if (q) {
+      const blob = (r.algorithm + ' ' + r.category + ' ' + r.useCases + ' ' + r.companies + ' ' + r.architecture).toLowerCase();
+      if (!blob.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderCards() {
+  const rows = getFiltered();
+  const wrap = document.getElementById('cards');
+  if (!rows.length) { wrap.innerHTML = '<div style="padding:60px; text-align:center; color:var(--ink-dimmer); font-family:var(--mono); font-size:12px; letter-spacing:0.15em; text-transform:uppercase;">No matching algorithms</div>'; return; }
+  wrap.innerHTML = rows.map((r, i) => {
+    const color = CAT_COLORS[r.category] || '#fff';
+    const stClass = r.status.replace(/\s+/g,'.');
+    return `
+      <div class="card" data-idx="${i}" style="--cat:${color}">
+        <div class="card-top">
+          <div>
+            <div class="card-name"><em>${r.algorithm}</em></div>
+            <div class="card-cat">${r.category} · ${r.speedup}</div>
+          </div>
+          <div class="badge ${stClass}">${r.status}</div>
+        </div>
+        <div class="card-row">
+          <span>Qubits<b>${r.qubitsText || '—'}</b></span>
+          <span>Hardware<b>${r.architecture || '—'}</b></span>
+        </div>
+        <div class="card-detail">
+          <div class="detail-body">
+            <p><b>Use cases</b>${r.useCases}</p>
+            <p><b>NISQ status</b>${r.statusDetail}</p>
+            <p><b>Most active</b>${r.companies}</p>
+            <p class="src"><b style="color:var(--ink-dimmer)">Source</b>${r.sources}</p>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+  wrap.querySelectorAll('.card').forEach(c => c.addEventListener('click', () => c.classList.toggle('open')));
+}
+
+document.getElementById('search').addEventListener('input', e => { state.query = e.target.value; renderCards(); });
+
+// ————— charts —————
+const fontBase = { family: 'JetBrains Mono', size: 10 };
+Chart.defaults.color = '#8a8a9a';
+Chart.defaults.borderColor = '#232638';
+Chart.defaults.font = fontBase;
+
+function buildCharts() {
+  // category bar (horizontal)
+  const byCat = {};
+  DATA.forEach(r => byCat[r.category] = (byCat[r.category]||0)+1);
+  const cats = Object.keys(CAT_COLORS);
+  new Chart(document.getElementById('catChart'), {
+    type: 'bar',
+    data: {
+      labels: cats,
+      datasets: [{
+        data: cats.map(c => byCat[c] || 0),
+        backgroundColor: cats.map(c => CAT_COLORS[c]),
+        borderWidth: 0, borderRadius: 0, barThickness: 14,
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#12141c', borderColor: '#232638', borderWidth: 1, titleFont: fontBase, bodyFont: fontBase } },
+      scales: {
+        x: { grid: { color: '#1c1e28' }, ticks: { stepSize: 1, font: fontBase } },
+        y: { grid: { display: false }, ticks: { font: fontBase, color: '#e8e6df' } }
+      }
+    }
+  });
+
+  // status donut
+  const statuses = ['Ready','Partial','Experimental','Not Yet'];
+  const byStatus = statuses.map(s => DATA.filter(r => r.status === s).length);
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: statuses,
+      datasets: [{
+        data: byStatus,
+        backgroundColor: statuses.map(s => STATUS_COLORS[s]),
+        borderColor: '#0a0b0f', borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '68%',
+      plugins: {
+        legend: { position: 'right', labels: { boxWidth: 10, boxHeight: 10, font: fontBase, color: '#e8e6df', padding: 10 } },
+        tooltip: { backgroundColor: '#12141c', borderColor: '#232638', borderWidth: 1, titleFont: fontBase, bodyFont: fontBase }
+      }
+    }
+  });
+
+  // speedup class bar
+  const speedupBucket = r => {
+    const s = (r.speedup || '').toLowerCase();
+    if (s.includes('exponential')) return 'Exponential';
+    if (s.includes('quadratic')) return 'Quadratic';
+    if (s.includes('heuristic')) return 'Heuristic';
+    if (s.includes('linear')) return 'Linear';
+    return 'Other';
+  };
+  const buckets = ['Exponential','Quadratic','Heuristic','Linear','Other'];
+  const bCounts = buckets.map(b => DATA.filter(r => speedupBucket(r) === b).length);
+  const bColors = ['#ff4fa8','#7dd3c0','#f5c96a','#9b8cff','#55586a'];
+  new Chart(document.getElementById('speedupChart'), {
+    type: 'bar',
+    data: { labels: buckets, datasets: [{ data: bCounts, backgroundColor: bColors, borderWidth: 0, barThickness: 28 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: '#12141c', borderColor: '#232638', borderWidth: 1 } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: fontBase, color: '#e8e6df' } },
+        y: { grid: { color: '#1c1e28' }, ticks: { stepSize: 1, font: fontBase } }
+      }
+    }
+  });
+
+  // scatter: qubits (log) vs category, bubble size = max qubits
+  const scatterData = cats.map(cat => ({
+    label: cat,
+    backgroundColor: CAT_COLORS[cat] + 'cc',
+    borderColor: CAT_COLORS[cat],
+    borderWidth: 1,
+    data: DATA.filter(r => r.category === cat && r.qubits).map(r => ({
+      x: r.qubits.max || r.qubits.min,
+      y: cat,
+      r: Math.min(22, Math.max(5, Math.log10((r.qubits.max||10)+1) * 3.5)),
+      algo: r.algorithm,
+      qtext: r.qubitsText,
+      status: r.status,
+    }))
+  }));
+  new Chart(document.getElementById('scatterChart'), {
+    type: 'bubble',
+    data: { datasets: scatterData },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { boxWidth: 8, boxHeight: 8, font: fontBase, color: '#e8e6df', padding: 12, usePointStyle: true } },
+        tooltip: {
+          backgroundColor: '#12141c', borderColor: '#232638', borderWidth: 1, titleFont: fontBase, bodyFont: fontBase,
+          callbacks: {
+            title: (items) => items[0].raw.algo,
+            label: (item) => [`Qubits: ${item.raw.qtext}`, `Status: ${item.raw.status}`]
+          }
+        }
+      },
+      scales: {
+        x: { type: 'logarithmic', title: { display: true, text: 'QUBITS  (log scale)', font: { ...fontBase, size: 10 }, color: '#8a8a9a' },
+             grid: { color: '#1c1e28' }, ticks: { font: fontBase, color: '#8a8a9a' } },
+        y: { type: 'category', labels: cats, grid: { color: '#1c1e28' }, ticks: { font: fontBase, color: '#e8e6df' } }
+      }
+    }
+  });
+}
+
+buildChips();
+renderCards();
+buildCharts();
+</script>
+</body>
+</html>
