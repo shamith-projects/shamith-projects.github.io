@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Transmon Qubit Calibration — A Practical Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=JetBrains+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['$','$'], ['\\(','\\)']], displayMath: [['$$','$$'], ['\\[','\\]']] },
+  svg: { fontCache: 'global' }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<style>
+  :root {
+    --bg: #0b1018;
+    --bg-2: #11182a;
+    --panel: #141c30;
+    --panel-2: #1a233b;
+    --ink: #e8e2d2;
+    --ink-dim: #a7a394;
+    --rule: #2a3553;
+    --accent: #7fd4a0;       /* phosphor green */
+    --accent-2: #f0b429;     /* amber */
+    --accent-3: #79d0e8;     /* cyan */
+    --accent-4: #d97a7a;     /* coral */
+    --serif: 'Fraunces', 'Iowan Old Style', 'Palatino', Georgia, serif;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); }
+  body {
+    font-family: var(--sans);
+    font-weight: 300;
+    line-height: 1.65;
+    font-size: 16px;
+    background-image:
+      radial-gradient(1200px 600px at 80% -10%, rgba(127,212,160,0.05), transparent 60%),
+      radial-gradient(900px 500px at -10% 20%, rgba(121,208,232,0.04), transparent 60%),
+      linear-gradient(to bottom, var(--bg), var(--bg-2));
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+  /* subtle scanline texture */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background-image: repeating-linear-gradient(to bottom, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
+    pointer-events: none; z-index: 0;
+  }
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 64px 32px 96px;
+    position: relative;
+    z-index: 1;
+  }
+  @media (min-width: 1400px) { .wrap { max-width: 1320px; } }
+
+  /* ---------- header ---------- */
+  header.title {
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 28px 0 32px;
+    margin-bottom: 56px;
+    position: relative;
+  }
+  header.title::before {
+    content: "";
+    position: absolute; left: 0; right: 0; top: 4px;
+    height: 1px; background: var(--rule);
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(36px, 5.5vw, 64px);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin: 0 0 12px 0;
+    color: var(--ink);
+  }
+  h1 em { font-style: italic; color: var(--accent-2); font-weight: 300; }
+  .subtitle {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 20px;
+    color: var(--ink-dim);
+    margin: 0;
+    max-width: 720px;
+  }
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 32px;
+    margin-top: 28px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .meta-row span b { color: var(--ink); font-weight: 500; }
+
+  /* ---------- sections ---------- */
+  section { margin-bottom: 88px; scroll-margin-top: 40px; }
+  .sec-head {
+    display: flex; align-items: baseline; gap: 24px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 12px;
+    margin-bottom: 28px;
+  }
+  .sec-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    flex-shrink: 0;
+    padding-top: 6px;
+  }
+  h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(26px, 3.2vw, 38px);
+    margin: 0;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+    flex: 1;
+  }
+  h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 20px;
+    margin: 28px 0 10px;
+    color: var(--ink);
+  }
+  p { margin: 0 0 14px 0; color: var(--ink); }
+  p.lead { font-family: var(--serif); font-size: 18px; line-height: 1.55; color: var(--ink); font-style: italic; }
+
+  .grid-2 { display: grid; grid-template-columns: 1.05fr 1fr; gap: 36px; align-items: start; }
+  .grid-2 > * { min-width: 0; }   /* let grid items shrink below canvas intrinsic size */
+  @media (max-width: 880px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  /* ---------- panels ---------- */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    padding: 20px;
+    position: relative;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .panel.diagram { background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%); }
+  .panel-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+  }
+  .panel-label .sub { color: var(--ink-dim); margin-left: 6px; }
+  .chart-host { position: relative; width: 100%; height: 290px; min-width: 0; }
+  .chart-host canvas { display: block; }
+
+  /* ---------- equations ---------- */
+  .eq-block {
+    background: rgba(0,0,0,0.25);
+    border-left: 2px solid var(--accent-2);
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 15px;
+    overflow-x: auto;
+  }
+  .eq-block .where {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--ink-dim);
+    margin-top: 10px;
+    line-height: 1.55;
+  }
+  .eq-inline { font-family: var(--mono); color: var(--accent-2); }
+
+  /* numeric example boxes */
+  .example {
+    border: 1px dashed var(--rule);
+    padding: 14px 18px;
+    margin: 16px 0;
+    background: rgba(127,212,160,0.04);
+  }
+  .example .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 8px;
+  }
+  .example p:last-child { margin-bottom: 0; }
+
+  /* lists */
+  ol, ul { padding-left: 22px; }
+  ol li, ul li { margin-bottom: 8px; }
+
+  /* table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 13px;
+    margin-top: 16px;
+  }
+  th, td {
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--rule);
+  }
+  th {
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 11px;
+  }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* footer */
+  footer {
+    margin-top: 80px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+  }
+  footer .author { color: var(--ink); letter-spacing: 0.18em; }
+  footer .author b { color: var(--accent); font-weight: 500; }
+
+  /* SVG diagrams */
+  svg.schem { width: 100%; height: auto; display: block; }
+  .schem text { font-family: var(--mono); font-size: 11px; fill: var(--ink); }
+  .schem .sub { fill: var(--ink-dim); font-size: 9px; letter-spacing: 0.1em; }
+  .schem .wire { stroke: var(--ink); stroke-width: 1.5; fill: none; }
+  .schem .wire-control { stroke: var(--accent); stroke-width: 1.5; fill: none; }
+  .schem .wire-readout { stroke: var(--accent-3); stroke-width: 1.5; fill: none; }
+  .schem .wire-lo { stroke: var(--accent-2); stroke-width: 1.5; fill: none; stroke-dasharray: 4 3; }
+  .schem .block { fill: var(--panel-2); stroke: var(--ink); stroke-width: 1; }
+  .schem .block-hi { fill: rgba(127,212,160,0.08); stroke: var(--accent); }
+  .schem .block-rd { fill: rgba(121,208,232,0.08); stroke: var(--accent-3); }
+  .schem .fridge { fill: rgba(255,255,255,0.02); stroke: var(--ink-dim); stroke-dasharray: 3 3; }
+
+  /* anchors */
+  .toc {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1px; background: var(--rule);
+    margin-bottom: 56px;
+    border: 1px solid var(--rule);
+  }
+  .toc a {
+    display: block; padding: 16px 18px;
+    background: var(--panel);
+    color: var(--ink);
+    text-decoration: none;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    transition: background 0.2s, color 0.2s;
+  }
+  .toc a:hover { background: var(--panel-2); color: var(--accent); }
+  .toc a .step {
+    display: block;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.25em;
+    margin-bottom: 4px;
+  }
+
+  ::selection { background: var(--accent); color: var(--bg); }
+
+  /* ============================================
+     TOP BAR (right-aligned external link)
+  ============================================ */
+  .top-bar {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 8px;
+    margin-bottom: 24px;
+  }
+  .top-link {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    padding: 6px 0;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s, color 0.2s;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .top-link:hover { border-bottom-color: var(--accent); color: var(--ink); }
+  .top-link .arrow {
+    font-size: 14px;
+    transition: transform 0.2s;
+  }
+  .top-link:hover .arrow { transform: translate(2px, -2px); }
+  @media (max-width: 640px) {
+    .top-bar { margin-bottom: 16px; padding-top: 0; }
+    .top-link { font-size: 11px; }
+  }
+
+  /* ============================================
+     LINK CARDS (simulator callouts in §0)
+  ============================================ */
+  .works-banner {
+    margin-top: 48px;
+    padding: 26px 28px 28px;
+    background: transparent;
+    border: 1px solid var(--rule);
+    position: relative;
+  }
+  .works-banner-head {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 20px;
+  }
+  .works-banner-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .works-banner-rule {
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+  .link-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 0;
+  }
+  .link-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 22px;
+    background: rgba(255,255,255,0.018);
+    border: 1px solid var(--rule);
+    text-decoration: none;
+    color: var(--ink);
+    transition: background 0.2s, border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .link-card::before {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.25s ease;
+  }
+  .link-card:hover { background: rgba(127,212,160,0.06); border-color: var(--accent); }
+  .link-card:hover::before { transform: scaleY(1); }
+  .link-card-content { flex: 1; min-width: 0; }
+  .link-card-tag {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .link-card-title {
+    display: block;
+    font-family: var(--serif);
+    font-size: 19px;
+    font-weight: 400;
+    line-height: 1.25;
+    color: var(--ink);
+  }
+  .link-card-arrow {
+    font-family: var(--mono);
+    font-size: 22px;
+    color: var(--accent);
+    margin-left: 20px;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+  }
+  .link-card:hover .link-card-arrow { transform: translate(3px, -3px); }
+  @media (max-width: 640px) {
+    .works-banner { margin-top: 32px; padding: 18px 16px 20px; }
+    .works-banner-head { gap: 12px; margin-bottom: 16px; }
+    .works-banner-label { font-size: 10px; letter-spacing: 0.22em; }
+    .link-grid { grid-template-columns: 1fr; gap: 12px; margin-top: 0; }
+    .link-card { padding: 16px 18px; }
+    .link-card-title { font-size: 17px; }
+    .link-card-arrow { font-size: 20px; margin-left: 14px; }
+  }
+
+  /* ============================================
+     RESPONSIVE DESIGN
+  ============================================ */
+
+  /* Tablet & small laptop: 880px and below */
+  @media (max-width: 880px) {
+    .wrap { padding: 40px 24px 72px; }
+    section { margin-bottom: 64px; }
+    header.title { margin-bottom: 40px; padding: 24px 0 28px; }
+    .meta-row { gap: 20px; font-size: 10px; }
+    .sec-head { gap: 16px; }
+    h3 { font-size: 18px; margin-top: 24px; }
+    .panel { padding: 16px; }
+    .chart-host { height: 260px; }
+    .grid-2 { gap: 28px; }
+    .toc { grid-template-columns: repeat(2, 1fr); margin-bottom: 40px; }
+  }
+
+  /* Mobile: 640px and below */
+  @media (max-width: 640px) {
+    body { font-size: 15px; line-height: 1.6; }
+    .wrap { padding: 28px 16px 56px; }
+    section { margin-bottom: 48px; }
+    header.title {
+      padding: 20px 0 24px;
+      margin-bottom: 32px;
+    }
+    .eyebrow { font-size: 10px; letter-spacing: 0.25em; margin-bottom: 12px; }
+    .subtitle { font-size: 16px; }
+    .meta-row {
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 20px;
+      font-size: 10px;
+    }
+
+    .sec-head {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      padding-bottom: 10px;
+      margin-bottom: 22px;
+    }
+    .sec-num { padding-top: 0; font-size: 11px; }
+
+    p.lead { font-size: 16px; }
+    h3 { font-size: 17px; margin-top: 20px; }
+
+    .panel { padding: 14px; }
+    .panel-label { font-size: 9px; letter-spacing: 0.24em; margin-bottom: 12px; }
+    .chart-host { height: 230px; }
+    .grid-2 { gap: 20px; }
+
+    .eq-block { padding: 12px 14px; font-size: 13px; }
+    .eq-block .where { font-size: 12px; }
+    .example { padding: 12px 14px; }
+
+    ol, ul { padding-left: 20px; }
+    ol li, ul li { margin-bottom: 6px; }
+
+    .toc {
+      grid-template-columns: 1fr;
+      margin-bottom: 32px;
+    }
+    .toc a { padding: 12px 14px; font-size: 11px; }
+
+    table { font-size: 11px; }
+    th, td { padding: 10px 8px; }
+
+    footer {
+      margin-top: 56px;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 10px;
+    }
+  }
+
+  /* Very small phones: 380px and below */
+  @media (max-width: 380px) {
+    .wrap { padding: 24px 12px 48px; }
+    h1 { font-size: 30px; }
+    .chart-host { height: 210px; }
+    th, td { padding: 8px 6px; }
+  }
+
+  /* Mobile: allow horizontal scroll for tables if very long */
+  @media (max-width: 640px) {
+    section#summary { overflow-x: auto; }
+    section#summary table { min-width: 480px; }
+  }
+
+  /* SVG diagrams stay readable on small screens via viewBox scaling */
+  svg.schem text { font-size: 11px; }
+  @media (max-width: 640px) {
+    svg.schem text { font-size: 13px; }   /* preserve readability when scaled */
+    svg.schem .sub { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<!-- ==================== TOP BAR ==================== -->
+<div class="top-bar">
+  <a href="https://shamith-projects.github.io" target="_blank" rel="noopener" class="top-link">
+    shamith-projects.github.io<span class="arrow">↗</span>
+  </a>
+</div>
+
+<!-- ==================== TITLE ==================== -->
+<header class="title">
+  <h1>Calibrating a Fixed-Frequency<br/><em>Transmon Qubit</em></h1>
+  <p class="subtitle">From the first sweep of the readout resonator to the final echo — six experiments that take a cold chip and turn it into a working two-level system.</p>
+  <div class="meta-row">
+    <span><b>Architecture</b> · Circuit QED</span>
+    <span><b>Regime</b> · Dispersive</span>
+    <span><b>Stage</b> · ≈ 10 mK</span>
+    <span><b>Frequencies</b> · 4 – 8 GHz</span>
+  </div>
+</header>
+
+<!-- TOC -->
+<nav class="toc">
+  <a href="#setup"><span class="step">§ 0</span>Experimental Setup</a>
+  <a href="#resonator"><span class="step">Step 1</span>Resonator Spec.</a>
+  <a href="#qubit-spec"><span class="step">Step 2</span>Qubit Spec.</a>
+  <a href="#rabi"><span class="step">Step 3</span>Rabi · π pulse</a>
+  <a href="#t1"><span class="step">Step 4</span>T₁ Relaxation</a>
+  <a href="#ramsey"><span class="step">Step 5</span>Ramsey · T₂*</a>
+  <a href="#echo"><span class="step">Step 6</span>Hahn Echo · T₂</a>
+</nav>
+
+<!-- ==================== § 0  SETUP ==================== -->
+<section id="setup">
+  <div class="sec-head">
+    <div class="sec-num">§ 0</div>
+    <h2>The Experimental Setup</h2>
+  </div>
+  <p class="lead">Every superconducting-qubit experiment is fundamentally a microwave measurement. A control tone is synthesised at room temperature, sent down attenuated coax to a dilution refrigerator, scattered off a chip held at millikelvin temperatures, and the reflected (or transmitted) signal is amplified, mixed back to baseband and digitised.</p>
+
+  <p>The pieces that matter for calibration are: an <em>arbitrary waveform generator</em> (AWG) producing baseband I and Q envelopes, an <em>IQ mixer</em> driven by a <em>local oscillator</em> (LO) that up-converts those envelopes to GHz, and a separate readout chain that uses a dispersively coupled resonator to interrogate the qubit's state.</p>
+
+  <div class="panel diagram" style="margin-top: 28px;">
+    <div class="panel-label">Fig. 0.1 <span class="sub">— control & readout schematic</span></div>
+    <svg class="schem" viewBox="0 0 1100 460" xmlns="http://www.w3.org/2000/svg" aria-label="Experimental setup diagram">
+      <!-- room temp zone -->
+      <text x="20" y="22" class="sub">ROOM TEMPERATURE · 300 K</text>
+      <line x1="0" y1="32" x2="1100" y2="32" stroke="#2a3553" stroke-width="0.5"/>
+
+      <!-- AWG -->
+      <rect class="block block-hi" x="30" y="80"  width="120" height="60" rx="2"/>
+      <text x="90" y="105" text-anchor="middle">AWG</text>
+      <text x="90" y="124" text-anchor="middle" class="sub">I(t),  Q(t)</text>
+
+      <!-- I,Q wires to mixer -->
+      <path class="wire-control" d="M150 100 L240 100"/>
+      <path class="wire-control" d="M150 120 L240 120"/>
+      <text x="195" y="94" class="sub" text-anchor="middle">I</text>
+      <text x="195" y="138" class="sub" text-anchor="middle">Q</text>
+
+      <!-- IQ mixer (drive) -->
+      <rect class="block block-hi" x="240" y="70" width="110" height="90" rx="2"/>
+      <text x="295" y="105" text-anchor="middle">IQ MIXER</text>
+      <circle cx="295" cy="130" r="14" fill="none" stroke="var(--accent)" stroke-width="1.2"/>
+      <text x="295" y="135" text-anchor="middle" class="sub">⊗</text>
+
+      <!-- LO source -->
+      <rect class="block" x="240" y="200" width="110" height="50" rx="2"/>
+      <text x="295" y="222" text-anchor="middle">LO</text>
+      <text x="295" y="240" text-anchor="middle" class="sub">f_LO</text>
+      <path class="wire-lo" d="M295 200 L295 160"/>
+      <text x="310" y="185" class="sub">LO</text>
+
+      <!-- RF out of mixer -->
+      <path class="wire-control" d="M350 115 L470 115"/>
+      <text x="410" y="108" class="sub" text-anchor="middle">RF drive</text>
+
+      <!-- DRIVE attenuator chain & fridge entry -->
+      <rect class="fridge" x="470" y="40"  width="540" height="380" rx="4"/>
+      <text x="740" y="55" text-anchor="middle" class="sub">DILUTION REFRIGERATOR  ·  ≈ 10 mK</text>
+
+      <!-- attenuator -->
+      <rect class="block" x="475" y="100" width="50" height="30"/>
+      <text x="500" y="120" text-anchor="middle" class="sub">−20 dB</text>
+      <path class="wire-control" d="M525 115 L585 115"/>
+      <rect class="block" x="585" y="100" width="50" height="30"/>
+      <text x="610" y="120" text-anchor="middle" class="sub">−20 dB</text>
+      <path class="wire-control" d="M635 115 L720 115"/>
+
+      <!-- on-chip qubit + resonator -->
+      <rect class="block block-hi" x="720" y="90"  width="120" height="55" rx="2"/>
+      <text x="780" y="113" text-anchor="middle">QUBIT</text>
+      <text x="780" y="130" text-anchor="middle" class="sub">drive port</text>
+
+      <!-- coupling line to resonator -->
+      <path class="wire" d="M780 145 L780 175"/>
+      <rect class="block block-rd" x="720" y="175" width="120" height="50" rx="2"/>
+      <text x="780" y="198" text-anchor="middle">READOUT</text>
+      <text x="780" y="215" text-anchor="middle" class="sub">resonator</text>
+
+      <!-- readout chain in -->
+      <path class="wire-readout" d="M900 200 L840 200"/>
+      <text x="870" y="194" class="sub" text-anchor="middle">probe</text>
+
+      <!-- circulator (simplified) -->
+      <circle class="block block-rd" cx="925" cy="200" r="20"/>
+      <path d="M918 196 a8 8 0 1 1 14 0" stroke="var(--accent-3)" fill="none" stroke-width="1.2"/>
+      <polygon points="935,194 932,191 932,197" fill="var(--accent-3)"/>
+      <text x="925" y="237" text-anchor="middle" class="sub">circulator</text>
+
+      <!-- input to circulator from readout LO chain -->
+      <path class="wire-readout" d="M925 260 L925 220"/>
+
+      <!-- output up to TWPA/HEMT -->
+      <path class="wire-readout" d="M945 200 L990 200 L990 90"/>
+      <rect class="block block-rd" x="965" y="60"  width="50" height="30"/>
+      <text x="990" y="80" text-anchor="middle" class="sub">TWPA</text>
+
+      <!-- exits fridge -->
+      <path class="wire-readout" d="M990 60 L990 25"/>
+
+      <!-- Readout up-conversion side (bottom of figure) -->
+      <text x="20" y="345" class="sub">READOUT GENERATION</text>
+
+      <rect class="block block-rd" x="30" y="360"  width="120" height="60" rx="2"/>
+      <text x="90" y="385" text-anchor="middle">AWG</text>
+      <text x="90" y="404" text-anchor="middle" class="sub">readout env.</text>
+
+      <path class="wire-readout" d="M150 380 L240 380"/>
+      <path class="wire-readout" d="M150 400 L240 400"/>
+
+      <rect class="block block-rd" x="240" y="350" width="110" height="90" rx="2"/>
+      <text x="295" y="385" text-anchor="middle">IQ MIXER</text>
+      <circle cx="295" cy="408" r="12" fill="none" stroke="var(--accent-3)" stroke-width="1.2"/>
+      <text x="295" y="412" text-anchor="middle" class="sub">⊗</text>
+
+      <!-- readout LO -->
+      <rect class="block" x="385" y="370" width="80" height="50"/>
+      <text x="425" y="392" text-anchor="middle">LO_r</text>
+      <text x="425" y="410" text-anchor="middle" class="sub">≈ f_r</text>
+      <path class="wire-lo" d="M385 395 L350 395"/>
+
+      <!-- readout RF up to fridge -->
+      <path class="wire-readout" d="M295 350 L295 280 L925 280 L925 260"/>
+
+      <!-- top exit to ADC / digitizer -->
+      <rect class="block block-rd" x="940" y="360" width="120" height="60"/>
+      <text x="1000" y="385" text-anchor="middle">ADC</text>
+      <text x="1000" y="404" text-anchor="middle" class="sub">demod · I,Q</text>
+      <path class="wire-readout" d="M990 25 L1000 25 L1000 360"/>
+
+      <!-- legend -->
+      <g transform="translate(30, 250)">
+        <text x="0" y="0" class="sub">LEGEND</text>
+        <line x1="0" y1="14" x2="24" y2="14" stroke="var(--accent)" stroke-width="1.5"/>
+        <text x="32" y="18">control / drive</text>
+        <line x1="0" y1="32" x2="24" y2="32" stroke="var(--accent-3)" stroke-width="1.5"/>
+        <text x="32" y="36">readout</text>
+        <line x1="0" y1="50" x2="24" y2="50" stroke="var(--accent-2)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="32" y="54">LO</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="grid-2" style="margin-top: 36px;">
+    <div>
+      <h3>The transmon, in a circuit</h3>
+      <p>A transmon is the simplest useful superconducting qubit: a Josephson junction shunted by a large capacitance, so that the charging energy <span class="eq-inline">$E_C$</span> is much smaller than the Josephson energy <span class="eq-inline">$E_J$</span>. In this regime the qubit becomes insensitive to charge noise, paid for by reduced anharmonicity.</p>
+      <p>It is read out by capacitively coupling it (coupling capacitance <span class="eq-inline">$C_g$</span>) to a quarter- or half-wavelength superconducting resonator at frequency <span class="eq-inline">$\omega_r$</span>.</p>
+      <div class="eq-block">
+        $$ \hat{H}_{\text{transmon}} = 4 E_C (\hat{n}-n_g)^2 - E_J \cos\hat{\varphi} $$
+        <div class="where">In the transmon limit (<span class="eq-inline">$E_J/E_C \gtrsim 50$</span>) the spectrum is a weakly anharmonic ladder with</div>
+        $$ \omega_{01} \approx \frac{\sqrt{8 E_J E_C}}{\hbar} - \frac{E_C}{\hbar}, \qquad \alpha \equiv \omega_{12}-\omega_{01} \approx -\frac{E_C}{\hbar}. $$
+      </div>
+    </div>
+
+    <div class="panel diagram">
+      <div class="panel-label">Fig. 0.2 <span class="sub">— transmon + readout circuit</span></div>
+      <svg class="schem" viewBox="0 0 520 360" xmlns="http://www.w3.org/2000/svg" aria-label="Transmon circuit">
+        <!-- section labels -->
+        <text x="110" y="28" text-anchor="middle" class="sub">READOUT RESONATOR</text>
+        <text x="400" y="28" text-anchor="middle" class="sub">TRANSMON</text>
+
+        <!-- ===== Drive port (top) ===== -->
+        <text x="400" y="60" text-anchor="middle" class="sub">DRIVE</text>
+        <path class="wire-control" d="M400 68 L400 95"/>
+        <!-- coupling capacitor C_d (horizontal plates) -->
+        <line class="wire-control" x1="385" y1="100" x2="415" y2="100"/>
+        <line class="wire-control" x1="385" y1="106" x2="415" y2="106"/>
+        <text x="425" y="107" class="sub">C_d</text>
+        <path class="wire-control" d="M400 106 L400 130"/>
+
+        <!-- ===== Top rail (node A: resonator-top, node B: transmon-top) ===== -->
+        <!-- resonator top rail -->
+        <path class="wire-readout" d="M60 130 L220 130"/>
+        <!-- coupling capacitor C_g (in series, vertical plates) -->
+        <line class="wire" x1="225" y1="115" x2="225" y2="145"/>
+        <line class="wire" x1="231" y1="115" x2="231" y2="145"/>
+        <text x="228" y="108" text-anchor="middle" class="sub">C_g</text>
+        <!-- transmon top rail -->
+        <path class="wire" d="M236 130 L480 130"/>
+
+        <!-- ===== Resonator: L_r (left) and C_r (right) in parallel ===== -->
+        <!-- L_r vertical inductor coil at x=80 -->
+        <path class="wire-readout" d="M80 130 L80 170"/>
+        <path class="wire-readout" d="M80 170
+          a 7 9 0 0 1 0 22
+          a 7 9 0 0 1 0 22
+          a 7 9 0 0 1 0 22
+          a 7 9 0 0 1 0 22"/>
+        <path class="wire-readout" d="M80 258 L80 290"/>
+        <text x="58" y="226" class="sub">L_r</text>
+
+        <!-- C_r vertical capacitor at x=180 -->
+        <path class="wire-readout" d="M180 130 L180 200"/>
+        <line class="wire-readout" x1="160" y1="205" x2="200" y2="205"/>
+        <line class="wire-readout" x1="160" y1="213" x2="200" y2="213"/>
+        <path class="wire-readout" d="M180 218 L180 290"/>
+        <text x="205" y="213" class="sub">C_r</text>
+
+        <!-- ===== Transmon: C_Σ (left) and JJ (right) in parallel ===== -->
+        <!-- C_Σ vertical capacitor at x=310 -->
+        <path class="wire" d="M310 130 L310 200"/>
+        <line class="wire" x1="290" y1="205" x2="330" y2="205"/>
+        <line class="wire" x1="290" y1="213" x2="330" y2="213"/>
+        <path class="wire" d="M310 218 L310 290"/>
+        <text x="335" y="213" class="sub">C_Σ</text>
+
+        <!-- Josephson junction at x=450 -->
+        <path class="wire" d="M450 130 L450 188"/>
+        <!-- JJ symbol: small box with × inside -->
+        <rect x="438" y="188" width="24" height="42" fill="none" stroke="var(--accent-2)" stroke-width="1"/>
+        <line x1="442" y1="194" x2="458" y2="224" stroke="var(--accent-2)" stroke-width="1.4"/>
+        <line x1="442" y1="224" x2="458" y2="194" stroke="var(--accent-2)" stroke-width="1.4"/>
+        <path class="wire" d="M450 230 L450 290"/>
+        <text x="468" y="213">E_J</text>
+
+        <!-- ===== Bottom ground rail ===== -->
+        <path class="wire-readout" d="M60 290 L220 290"/>
+        <path class="wire" d="M236 290 L480 290"/>
+        <!-- bottom coupling cap completion (C_g has bottom passthrough as wire) -->
+        <path class="wire" d="M220 290 L236 290"/>
+
+        <!-- ground symbols -->
+        <g transform="translate(140 290)" stroke="var(--ink-dim)" stroke-width="1" fill="none">
+          <line x1="0" y1="0" x2="0" y2="10"/>
+          <line x1="-10" y1="10" x2="10" y2="10"/>
+          <line x1="-6" y1="14" x2="6" y2="14"/>
+          <line x1="-3" y1="18" x2="3" y2="18"/>
+        </g>
+        <g transform="translate(380 290)" stroke="var(--ink-dim)" stroke-width="1" fill="none">
+          <line x1="0" y1="0" x2="0" y2="10"/>
+          <line x1="-10" y1="10" x2="10" y2="10"/>
+          <line x1="-6" y1="14" x2="6" y2="14"/>
+          <line x1="-3" y1="18" x2="3" y2="18"/>
+        </g>
+        <text x="260" y="338" text-anchor="middle" class="sub">common ground</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="works-banner">
+    <div class="works-banner-head">
+      <span class="works-banner-label">More from Shamith's Projects</span>
+      <span class="works-banner-rule"></span>
+    </div>
+    <div class="link-grid">
+      <a href="#" class="link-card" target="_blank" rel="noopener">
+        <div class="link-card-content">
+          <span class="link-card-tag">Interactive</span>
+          <span class="link-card-title">Superconducting Qubit Simulator</span>
+        </div>
+        <span class="link-card-arrow">↗</span>
+      </a>
+      <a href="#" class="link-card" target="_blank" rel="noopener">
+        <div class="link-card-content">
+          <span class="link-card-tag">Interactive · Cryogenics</span>
+          <span class="link-card-title">Dilution Refrigerator Simulator</span>
+        </div>
+        <span class="link-card-arrow">↗</span>
+      </a>
+    </div>
+  </div>
+</section>
+<section id="resonator">
+  <div class="sec-head">
+    <div class="sec-num">STEP 01</div>
+    <h2>Readout Resonator Spectroscopy</h2>
+  </div>
+  <p class="lead">First we find the resonator. With the qubit unprepared (and effectively decoupled at low probe power), the bare resonator simply reflects everything except at its resonance frequency, where the field builds up and is dissipated.</p>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Set readout LO so the up-converted tone sweeps a range of, say, 6.0 – 7.5 GHz in 0.5 MHz steps. Use very low power (well below one photon on average).</li>
+    <li>For every frequency, send a CW probe through the feedline, demodulate the transmitted I and Q, compute <span class="eq-inline">$|S_{21}|$</span>.</li>
+    <li>Look for a dip (notch geometry) or peak (transmission geometry). Fit a Lorentzian.</li>
+  </ol>
+
+  <h3>What the data looks like</h3>
+  <p>Around the resonance, the transmitted amplitude for a notch-type resonator follows</p>
+
+  <div class="eq-block">
+    $$ S_{21}(\omega) \;=\; 1 \;-\; \frac{(\kappa_{\text{ext}}/\kappa)\, e^{i\phi}}{1 + 2 i (\omega - \omega_r)/\kappa}. $$
+    <div class="where"><span class="eq-inline">$\omega_r$</span> is the resonance frequency, <span class="eq-inline">$\kappa = \kappa_{\text{int}} + \kappa_{\text{ext}}$</span> is the total linewidth (FWHM in angular units), and the loaded quality factor is <span class="eq-inline">$Q_L = \omega_r/\kappa$</span>.</div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="panel">
+        <div class="panel-label">Fig. 1.1 <span class="sub">— |S₂₁| vs probe frequency</span></div>
+        <div class="chart-host"><canvas id="ch-resonator"></canvas></div>
+      </div>
+    </div>
+    <div>
+      <div class="example">
+        <span class="tag">Worked example</span>
+        <p>The fit returns <span class="eq-inline">$f_r = 7.142\,\text{GHz}$</span> with FWHM <span class="eq-inline">$\Delta f = 1.4\,\text{MHz}$</span>.</p>
+        <p>Total linewidth: <span class="eq-inline">$\kappa/2\pi = 1.4\,\text{MHz}$</span>.</p>
+        <p>Loaded Q: <span class="eq-inline">$Q_L = f_r/\Delta f \approx 5.1\times 10^{3}$</span>.</p>
+        <p>The depth of the dip lets us split <span class="eq-inline">$\kappa_{\text{ext}}$</span> from <span class="eq-inline">$\kappa_{\text{int}}$</span>; typically we design for <span class="eq-inline">$\kappa_{\text{ext}}\!\approx\!\kappa_{\text{int}}$</span> (critical coupling) for fast readout without sacrificing photons to loss.</p>
+      </div>
+
+      <h3>Going further: punch-out</h3>
+      <p>Repeat the sweep while ramping the probe power up. At low power the resonator sits at its <em>dressed</em> frequency <span class="eq-inline">$\omega_r + \chi\langle\sigma_z\rangle$</span>; at high power photon number drives the qubit into the highly excited manifold and the resonator pops back to its <em>bare</em> frequency. The discontinuity is exactly the dispersive shift <span class="eq-inline">$\chi$</span>, and tells you the qubit is alive on the chip.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== § 2  QUBIT SPECTROSCOPY ==================== -->
+<section id="qubit-spec">
+  <div class="sec-head">
+    <div class="sec-num">STEP 02</div>
+    <h2>Two-Tone Qubit Spectroscopy</h2>
+  </div>
+  <p class="lead">Now we hunt for the qubit. Park a probe at the resonator and watch its phase or amplitude while a second tone scans through GHz looking for the frequency that excites <span class="eq-inline">$|0\rangle \to |1\rangle$</span>.</p>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Park the readout LO at the dressed resonator frequency found in Step 1.</li>
+    <li>Apply a long, low-power spectroscopy pulse from the drive AWG and sweep its carrier frequency <span class="eq-inline">$f_d$</span> over a few hundred MHz (an educated guess from design is usually right within ~100 MHz).</li>
+    <li>For every <span class="eq-inline">$f_d$</span>, measure the resonator response. When <span class="eq-inline">$f_d = f_q$</span>, the qubit gets pumped into a mixed state, the average <span class="eq-inline">$\langle\sigma_z\rangle$</span> changes, and the dispersive shift <span class="eq-inline">$\chi\sigma_z$</span> moves the resonator → the readout signal changes.</li>
+  </ol>
+
+  <div class="eq-block">
+    $$ \omega_r^{\text{dressed}} \;=\; \omega_r + \chi\,\langle\sigma_z\rangle, \qquad \chi \;\approx\; \frac{g^2}{\Delta}\,\frac{\alpha}{\Delta + \alpha}. $$
+    <div class="where">where <span class="eq-inline">$g$</span> is the qubit–resonator coupling, <span class="eq-inline">$\Delta = \omega_q - \omega_r$</span> is the qubit–resonator detuning, and <span class="eq-inline">$\alpha$</span> is the transmon anharmonicity. The qubit response is a Lorentzian peak / dip in the readout signal centred at <span class="eq-inline">$\omega_q$</span>:</div>
+    $$ P_e(\omega_d) \;=\; \frac{1}{2}\cdot\frac{\Omega^2\, T_1 T_2}{1 + (\omega_d - \omega_q)^2 T_2^2 + \Omega^2\, T_1 T_2}. $$
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="panel">
+        <div class="panel-label">Fig. 2.1 <span class="sub">— readout signal vs drive frequency</span></div>
+        <div class="chart-host"><canvas id="ch-qspec"></canvas></div>
+      </div>
+    </div>
+    <div>
+      <div class="example">
+        <span class="tag">Worked example</span>
+        <p>Lorentzian fit returns the centre <span class="eq-inline">$f_q = 5.213\,\text{GHz}$</span> with a power-broadened FWHM of <span class="eq-inline">$\sim 2\,\text{MHz}$</span>.</p>
+        <p>Take the drive power down by 6 dB and repeat: the line should narrow toward the intrinsic linewidth <span class="eq-inline">$\Gamma_2/2\pi = 1/(\pi T_2)$</span>. The frequency at zero power (extrapolated) is the real qubit frequency.</p>
+        <p>If a second, weaker peak appears at <span class="eq-inline">$f_q + \alpha/2$</span>, that's the two-photon <span class="eq-inline">$|0\rangle\!\to\!|2\rangle$</span> transition — its position gives the anharmonicity, here <span class="eq-inline">$\alpha/2\pi \approx -220\,\text{MHz}$</span>.</p>
+      </div>
+
+      <h3>Tip</h3>
+      <p>Start broad and ugly. A 500 MHz scan in 1 MHz steps with a long (≥ 2 µs) high-power saturation pulse will reveal almost anything within ±250 MHz of the design frequency. Only once you've found a feature do you tighten the span and lower the power.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== § 3  RABI ==================== -->
+<section id="rabi">
+  <div class="sec-head">
+    <div class="sec-num">STEP 03</div>
+    <h2>Rabi Oscillations &amp; the π Pulse</h2>
+  </div>
+  <p class="lead">A coherent drive at <span class="eq-inline">$f_q$</span> rotates the Bloch vector. By varying the pulse duration (or amplitude) and reading out, we calibrate the area that flips the qubit from <span class="eq-inline">$|0\rangle$</span> to <span class="eq-inline">$|1\rangle$</span>: the π pulse.</p>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Tune the drive LO so that the up-converted carrier equals <span class="eq-inline">$f_q$</span>.</li>
+    <li>Send a square (or Gaussian) drive pulse of duration <span class="eq-inline">$\tau$</span> at fixed amplitude <span class="eq-inline">$A$</span>, then immediately read out.</li>
+    <li>Sweep <span class="eq-inline">$\tau$</span> from 0 to a few hundred ns. The excited-state population oscillates as <span class="eq-inline">$\sin^2(\Omega_R \tau /2)$</span>.</li>
+    <li>Fit a damped cosine and read off the Rabi frequency <span class="eq-inline">$\Omega_R$</span>.</li>
+  </ol>
+
+  <div class="eq-block">
+    $$ P_{|1\rangle}(\tau) \;=\; \tfrac{1}{2}\Bigl(1 \;-\; \cos(\Omega_R\,\tau)\;e^{-\tau/T_{\text{Rabi}}}\Bigr). $$
+    <div class="where">The π-pulse duration is</div>
+    $$ t_\pi \;=\; \frac{\pi}{\Omega_R} \;=\; \frac{T_{\text{Rabi-period}}}{2}. $$
+    <div class="where">Equivalently, fixing <span class="eq-inline">$\tau$</span> and sweeping amplitude gives a "power Rabi" that calibrates the AWG gain for a π rotation.</div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="panel">
+        <div class="panel-label">Fig. 3.1 <span class="sub">— |1⟩ population vs pulse length</span></div>
+        <div class="chart-host"><canvas id="ch-rabi"></canvas></div>
+      </div>
+    </div>
+    <div>
+      <div class="example">
+        <span class="tag">Worked example</span>
+        <p>Fit returns <span class="eq-inline">$\Omega_R/2\pi = 12.5\,\text{MHz}$</span>, envelope decay <span class="eq-inline">$T_{\text{Rabi}} = 1.8\,\mu s$</span>.</p>
+        <p>Therefore</p>
+        <p><span class="eq-inline">$t_\pi = 1/(2\,f_R) = 1/(2\times 12.5\,\text{MHz}) = 40\,\text{ns}$</span>.</p>
+        <p>A π/2 pulse is half of that: <span class="eq-inline">$t_{\pi/2} = 20\,\text{ns}$</span>.</p>
+        <p>For all-Gaussian pulses we usually use a "power Rabi" with fixed σ (say 10 ns total length) and find the amplitude that produces the first maximum.</p>
+      </div>
+
+      <h3>What can go wrong</h3>
+      <ul>
+        <li>If <span class="eq-inline">$f_d \neq f_q$</span> exactly, the visible Rabi frequency is <span class="eq-inline">$\sqrt{\Omega_R^2 + \Delta^2}$</span> and the contrast drops — useful diagnostic.</li>
+        <li>Leakage into <span class="eq-inline">$|2\rangle$</span> shows up as a "beat" on top of the Rabi: cure with DRAG-shaped pulses.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== § 4  T1 ==================== -->
+<section id="t1">
+  <div class="sec-head">
+    <div class="sec-num">STEP 04</div>
+    <h2>Energy Relaxation Time T₁</h2>
+  </div>
+  <p class="lead">Prepare <span class="eq-inline">$|1\rangle$</span>, wait a variable time, read out. The probability of finding the qubit still excited falls exponentially with characteristic time <span class="eq-inline">$T_1$</span>.</p>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Apply a calibrated π pulse.</li>
+    <li>Wait a delay <span class="eq-inline">$\tau$</span> (idle).</li>
+    <li>Read out.</li>
+    <li>Sweep <span class="eq-inline">$\tau$</span> from 0 to ~5×T₁ (e.g. 0 → 200 µs). Average ≥ 1k shots per point.</li>
+  </ol>
+
+  <div class="eq-block">
+    $$ P_{|1\rangle}(\tau) \;=\; e^{-\tau/T_1}. $$
+    <div class="where"><span class="eq-inline">$T_1$</span> is set by spontaneous emission into the environment (mostly the Purcell channel through the readout resonator, plus dielectric loss on the chip).</div>
+    $$ \frac{1}{T_1^{\text{Purcell}}} \;=\; \Bigl(\frac{g}{\Delta}\Bigr)^2 \kappa. $$
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="panel">
+        <div class="panel-label">Fig. 4.1 <span class="sub">— excited-state decay</span></div>
+        <div class="chart-host"><canvas id="ch-t1"></canvas></div>
+      </div>
+    </div>
+    <div>
+      <div class="example">
+        <span class="tag">Worked example</span>
+        <p>Exponential fit: <span class="eq-inline">$T_1 = 42\,\mu s$</span>.</p>
+        <p>Cross-check against Purcell: with <span class="eq-inline">$g/2\pi = 60\,\text{MHz}$</span>, <span class="eq-inline">$\Delta/2\pi = (7.142 - 5.213) = 1.929\,\text{GHz}$</span>, <span class="eq-inline">$\kappa/2\pi = 1.4\,\text{MHz}$</span>:</p>
+        <p><span class="eq-inline">$T_1^{\text{Purcell}} = (\Delta/g)^2/\kappa = (1929/60)^2/(2\pi\!\times\!1.4\,\text{MHz}) \approx 117\,\mu s$</span>.</p>
+        <p>The measured T₁ is well below the Purcell limit, so we are dominated by <em>other</em> loss (probably TLS / dielectric). That's where you point your engineering effort next.</p>
+      </div>
+
+      <h3>Sanity checks</h3>
+      <ul>
+        <li>Measure T₁ many times and histogram it — fluctuations of 20–30% over hours are normal and reveal sparse TLS defects.</li>
+        <li>Make sure your delay sweep is much longer than your largest expected T₁, or you'll fit a misleadingly short value from the upper portion of the curve.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== § 5  RAMSEY ==================== -->
+<section id="ramsey">
+  <div class="sec-head">
+    <div class="sec-num">STEP 05</div>
+    <h2>Ramsey Interference &amp; T₂*</h2>
+  </div>
+  <p class="lead">Two π/2 pulses separated by a free-evolution time <span class="eq-inline">$\tau$</span>. Any detuning <span class="eq-inline">$\delta = f_d - f_q$</span> imprints a phase, so the readout oscillates in <span class="eq-inline">$\tau$</span> at <span class="eq-inline">$\delta$</span>; the envelope decays at <span class="eq-inline">$T_2^*$</span>, the dephasing time set by <em>quasi-static</em> noise.</p>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Detune the drive deliberately by a known amount (e.g. <span class="eq-inline">$\delta = 500\,\text{kHz}$</span>) so you get clean fringes.</li>
+    <li>Sequence: <em>π/2 — wait τ — π/2 — read</em>. Sweep <span class="eq-inline">$\tau$</span>.</li>
+    <li>Fit a damped cosine: <span class="eq-inline">$a\cos(2\pi\delta\,\tau + \phi)\,e^{-(\tau/T_2^*)^n}$</span> with <span class="eq-inline">$n\in[1,2]$</span> depending on noise spectrum.</li>
+    <li>The fitted frequency <span class="eq-inline">$\delta_{\text{fit}}$</span> tells you how far off <span class="eq-inline">$f_q$</span> you actually are; iterate to land on resonance.</li>
+  </ol>
+
+  <div class="eq-block">
+    $$ P_{|1\rangle}(\tau) \;=\; \tfrac{1}{2}\Bigl[1 + \cos(2\pi\delta\,\tau)\, e^{-\tau/T_2^*}\Bigr]. $$
+    <div class="where">The dephasing rate decomposes as</div>
+    $$ \frac{1}{T_2^*} \;=\; \frac{1}{2T_1} \;+\; \frac{1}{T_\varphi^*}, $$
+    <div class="where">where <span class="eq-inline">$T_\varphi^*$</span> is the pure dephasing time from low-frequency frequency fluctuations (charge / flux / TLS).</div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="panel">
+        <div class="panel-label">Fig. 5.1 <span class="sub">— Ramsey fringes</span></div>
+        <div class="chart-host"><canvas id="ch-ramsey"></canvas></div>
+      </div>
+    </div>
+    <div>
+      <div class="example">
+        <span class="tag">Worked example</span>
+        <p>Fit: <span class="eq-inline">$\delta_{\text{fit}} = 0.50\,\text{MHz}$</span>, <span class="eq-inline">$T_2^* = 28\,\mu s$</span>.</p>
+        <p>If we set <span class="eq-inline">$\delta_{\text{set}} = 0.50\,\text{MHz}$</span> the qubit is on resonance. If we instead set it to 0.40 MHz, our LO frequency is high by 100 kHz; subtract that off and re-sweep.</p>
+        <p>With <span class="eq-inline">$T_1 = 42\,\mu s$</span> the pure dephasing time is</p>
+        <p><span class="eq-inline">$1/T_\varphi^* = 1/T_2^* - 1/(2T_1) \Rightarrow T_\varphi^* \approx 42\,\mu s$</span>.</p>
+      </div>
+
+      <h3>Why two purposes</h3>
+      <p>Ramsey is simultaneously the most accurate frequency-finder we have and the most direct measure of slow dephasing. Run it overnight and you can plot the qubit's frequency vs. time — that drift <em>is</em> your dephasing budget.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== § 6  HAHN ECHO ==================== -->
+<section id="echo">
+  <div class="sec-head">
+    <div class="sec-num">STEP 06</div>
+    <h2>Hahn Echo &amp; T₂</h2>
+  </div>
+  <p class="lead">The Hahn-echo sequence inserts a π pulse halfway through the Ramsey wait, which refocuses any quasi-static frequency offset. What's left is the dephasing from <em>noise faster</em> than the echo time — usually a much smaller effect.</p>
+
+  <h3>Procedure</h3>
+  <ol>
+    <li>Sequence: <em>π/2 — τ/2 — π — τ/2 — π/2 — read</em>.</li>
+    <li>Sweep total wait <span class="eq-inline">$\tau$</span>. There are no fringes now — just a decay.</li>
+    <li>Fit a single exponential (or stretched exponential) to extract <span class="eq-inline">$T_2^{\text{echo}}$</span>.</li>
+  </ol>
+
+  <div class="eq-block">
+    $$ P_{|1\rangle}(\tau) \;=\; \tfrac{1}{2}\bigl[1 + e^{-\tau/T_2^{\text{echo}}}\bigr]. $$
+    <div class="where">The echo suppresses noise at frequencies below <span class="eq-inline">$\sim 1/\tau$</span>, so the inferred coherence time obeys</div>
+    $$ T_2^{\text{echo}} \;\geq\; T_2^*, \qquad \text{and}\qquad T_2^{\text{echo}} \leq 2 T_1. $$
+    <div class="where">The bound <span class="eq-inline">$2T_1$</span> is the absolute fundamental ceiling on phase coherence.</div>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="panel">
+        <div class="panel-label">Fig. 6.1 <span class="sub">— echo decay</span></div>
+        <div class="chart-host"><canvas id="ch-echo"></canvas></div>
+      </div>
+    </div>
+    <div>
+      <div class="example">
+        <span class="tag">Worked example</span>
+        <p>Fit: <span class="eq-inline">$T_2^{\text{echo}} = 58\,\mu s$</span>.</p>
+        <p>Compare to <span class="eq-inline">$2T_1 = 84\,\mu s$</span>: we are at <span class="eq-inline">$\sim 0.69\,(2T_1)$</span>, so there's still a non-trivial pure-dephasing contribution from <em>high-frequency</em> noise that echo can't refocus.</p>
+        <p>Compare to <span class="eq-inline">$T_2^* = 28\,\mu s$</span>: the echo bought us a factor of ~2, telling us that quasi-static drift (slow flux/charge noise) was a big part of the Ramsey decay.</p>
+      </div>
+
+      <h3>What to do next</h3>
+      <ul>
+        <li><b>CPMG / dynamical decoupling.</b> Replace the single π with a train of N π pulses to suppress noise up to higher frequencies.</li>
+        <li><b>Noise spectroscopy.</b> Sweep N and reconstruct the dephasing spectrum <span class="eq-inline">$S_\varphi(\omega)$</span>.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== SUMMARY ==================== -->
+<section id="summary">
+  <div class="sec-head">
+    <div class="sec-num">RECAP</div>
+    <h2>The Six Numbers You Walk Away With</h2>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Step</th><th>Experiment</th><th>Extracts</th><th>Example value</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Resonator spectroscopy</td><td>f_r,  κ,  Q_L</td><td>7.142 GHz · 1.4 MHz · 5.1×10³</td></tr>
+      <tr><td>2</td><td>Qubit spectroscopy</td><td>f_q,  α</td><td>5.213 GHz · −220 MHz</td></tr>
+      <tr><td>3</td><td>Rabi</td><td>Ω_R,  t_π</td><td>12.5 MHz · 40 ns</td></tr>
+      <tr><td>4</td><td>T₁ relaxation</td><td>T₁</td><td>42 µs</td></tr>
+      <tr><td>5</td><td>Ramsey</td><td>T₂*, f_q (refined)</td><td>28 µs</td></tr>
+      <tr><td>6</td><td>Hahn echo</td><td>T₂^echo</td><td>58 µs</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top: 20px;">Those six numbers are enough to start running single-qubit gates with characterised fidelity. From here the same toolkit — drive, wait, read — generalises to randomised benchmarking, two-qubit gate calibration, and active reset.</p>
+</section>
+
+<footer>
+  <span>Transmon Qubit Calibration</span>
+  <span class="author">Author · <b>Shamith P</b></span>
+  <span>Step 0 → Step 6</span>
+</footer>
+
+</div>
+
+<script>
+/* ============================================
+   Chart.js global theming
+============================================ */
+const ink = '#e8e2d2';
+const inkDim = '#a7a394';
+const rule = '#2a3553';
+const accent = '#7fd4a0';
+const accent2 = '#f0b429';
+const accent3 = '#79d0e8';
+const accent4 = '#d97a7a';
+
+Chart.defaults.color = inkDim;
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+Chart.defaults.borderColor = rule;
+
+/* Screen-aware sizing */
+const isSmall = () => window.innerWidth <= 640;
+const isTiny  = () => window.innerWidth <= 380;
+const chartFont    = () => isTiny() ? 9 : (isSmall() ? 9 : 10);
+const titleFont    = () => isTiny() ? 10 : (isSmall() ? 10 : 11);
+const ptRadius     = () => isSmall() ? 1.6 : 2.3;
+const lineWidth    = () => isSmall() ? 1.3 : 1.6;
+const xTicksLimit  = () => isTiny() ? 4 : (isSmall() ? 5 : 7);
+const yTicksLimit  = () => isTiny() ? 4 : (isSmall() ? 4 : 5);
+
+const commonOpts = (xLabel, yLabel) => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  resizeDelay: 80,
+  animation: { duration: 600 },
+  layout: { padding: { top: 4, right: 8, bottom: 0, left: 0 } },
+  plugins: {
+    legend: {
+      display: true,
+      labels: {
+        color: inkDim,
+        boxWidth: isSmall() ? 8 : 10,
+        boxHeight: isSmall() ? 8 : 10,
+        font: { size: chartFont() },
+        padding: isSmall() ? 6 : 10
+      }
+    },
+    tooltip: {
+      enabled: true,
+      backgroundColor: '#0b1018',
+      borderColor: rule,
+      borderWidth: 1,
+      titleColor: ink,
+      bodyColor: ink,
+      titleFont: { size: chartFont() },
+      bodyFont: { size: chartFont() }
+    }
+  },
+  scales: {
+    x: {
+      type: 'linear',
+      title: { display: true, text: xLabel, color: inkDim, font: { size: titleFont() } },
+      grid: { color: 'rgba(42,53,83,0.35)', lineWidth: 0.5 },
+      ticks: { color: inkDim, font: { size: chartFont() }, maxTicksLimit: xTicksLimit(), maxRotation: 0, autoSkipPadding: 8 }
+    },
+    y: {
+      title: { display: true, text: yLabel, color: inkDim, font: { size: titleFont() } },
+      grid: { color: 'rgba(42,53,83,0.35)', lineWidth: 0.5 },
+      ticks: { color: inkDim, font: { size: chartFont() }, maxTicksLimit: yTicksLimit() }
+    }
+  },
+  elements: {
+    point: { radius: ptRadius(), hoverRadius: ptRadius() + 2 },
+    line:  { borderWidth: lineWidth() }
+  }
+});
+
+/* Keep all live charts in a registry. Re-apply size-dependent option
+   values AND force each canvas to re-measure its container. */
+const _charts = [];
+
+function _applyOpts(c) {
+  const o = c.options;
+  o.plugins.legend.labels.font.size = chartFont();
+  o.plugins.legend.labels.boxWidth  = isSmall() ? 8 : 10;
+  o.plugins.legend.labels.boxHeight = isSmall() ? 8 : 10;
+  o.scales.x.title.font.size = titleFont();
+  o.scales.y.title.font.size = titleFont();
+  o.scales.x.ticks.font.size = chartFont();
+  o.scales.y.ticks.font.size = chartFont();
+  o.scales.x.ticks.maxTicksLimit = xTicksLimit();
+  o.scales.y.ticks.maxTicksLimit = yTicksLimit();
+  o.elements.point.radius      = ptRadius();
+  o.elements.point.hoverRadius = ptRadius() + 2;
+  o.elements.line.borderWidth  = lineWidth();
+}
+
+function _rescaleOne(c) {
+  if (!c || !c.canvas || !c.canvas.isConnected) return;
+  _applyOpts(c);
+  try { c.resize(); } catch (e) {}   // force canvas to match its container box
+  c.update('none');                  // re-render with the new option values
+}
+
+function _rescaleAll() { _charts.forEach(_rescaleOne); }
+
+/* Debounced global handlers */
+let _rTo;
+function _scheduleRescale() {
+  clearTimeout(_rTo);
+  _rTo = setTimeout(() => requestAnimationFrame(_rescaleAll), 90);
+}
+window.addEventListener('resize', _scheduleRescale);
+window.addEventListener('orientationchange', _scheduleRescale);
+window.addEventListener('load', () => setTimeout(_rescaleAll, 60));
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => setTimeout(_rescaleAll, 60));
+}
+
+/* Per-chart ResizeObserver: any container size change — including the
+   media-query HEIGHT jumps at breakpoints, not just window-width changes —
+   forces THAT chart to re-fit, independently of the window resize event.
+   Registered lazily once each chart exists. */
+let _ro = null;
+if (typeof ResizeObserver !== 'undefined') {
+  let _roTo;
+  _ro = new ResizeObserver(() => {
+    clearTimeout(_roTo);
+    _roTo = setTimeout(() => requestAnimationFrame(_rescaleAll), 80);
+  });
+}
+function _observe(c) {
+  if (_ro && c && c.canvas && c.canvas.parentNode) {
+    _ro.observe(c.canvas.parentNode);   // observe the .chart-host box
+  }
+}
+
+/* Wrap registration so every pushed chart is observed + sized once on creation */
+const _rawPush = _charts.push.bind(_charts);
+_charts.push = function (c) {
+  _rawPush(c);
+  _observe(c);
+  requestAnimationFrame(() => _rescaleOne(c));
+  return _charts.length;
+};
+
+/* Simple seeded gaussian noise */
+function noise(amp, seed) {
+  let s = seed;
+  return () => {
+    s = (s * 9301 + 49297) % 233280;
+    const u1 = s / 233280;
+    s = (s * 9301 + 49297) % 233280;
+    const u2 = s / 233280;
+    return amp * Math.sqrt(-2 * Math.log(u1 + 1e-9)) * Math.cos(2 * Math.PI * u2);
+  };
+}
+
+/* ============================================
+   1. Resonator |S21|
+============================================ */
+(function() {
+  const fr = 7.142;          // GHz
+  const kappa = 0.0014;      // GHz (1.4 MHz)
+  const depth = 0.92;
+  const data = [];
+  const fit = [];
+  const n = noise(0.012, 11);
+  for (let f = 7.130; f <= 7.155; f += 0.0002) {
+    const lin = 1 - depth * (kappa/2)**2 / ((f-fr)**2 + (kappa/2)**2);
+    const mag = Math.sqrt(lin);
+    fit.push({ x: f, y: mag });
+    data.push({ x: f, y: mag + n() });
+  }
+  _charts.push(new Chart(document.getElementById('ch-resonator'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'measured |S₂₁|', data: data, backgroundColor: accent3, borderColor: accent3, showLine: false },
+        { label: 'Lorentzian fit', data: fit, borderColor: accent2, backgroundColor: 'transparent', showLine: true, pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: commonOpts('probe frequency  f  (GHz)', '|S₂₁|')
+  }));
+})();
+
+/* ============================================
+   2. Qubit spectroscopy
+============================================ */
+(function() {
+  const fq = 5.213;
+  const gamma = 0.002;  // 2 MHz
+  const data = [];
+  const fit = [];
+  const n = noise(0.025, 23);
+  for (let f = 5.190; f <= 5.235; f += 0.0004) {
+    const peak = 0.6 * (gamma/2)**2 / ((f-fq)**2 + (gamma/2)**2);
+    fit.push({ x: f, y: peak });
+    data.push({ x: f, y: peak + n() });
+  }
+  _charts.push(new Chart(document.getElementById('ch-qspec'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'readout signal Δ', data: data, backgroundColor: accent, borderColor: accent, showLine: false },
+        { label: 'Lorentzian fit', data: fit, borderColor: accent2, backgroundColor: 'transparent', showLine: true, pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: commonOpts('drive frequency  f_d  (GHz)', '⟨σ_z⟩ change (a.u.)')
+  }));
+})();
+
+/* ============================================
+   3. Rabi oscillations
+============================================ */
+(function() {
+  const fR = 12.5;       // MHz
+  const Trabi = 1800;    // ns
+  const data = [];
+  const fit = [];
+  const n = noise(0.035, 7);
+  for (let t = 0; t <= 250; t += 4) {
+    const y = 0.5 * (1 - Math.cos(2*Math.PI*fR*t/1000) * Math.exp(-t/Trabi));
+    fit.push({ x: t, y });
+    data.push({ x: t, y: y + n() });
+  }
+  _charts.push(new Chart(document.getElementById('ch-rabi'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'P( |1⟩ )', data: data, backgroundColor: accent, borderColor: accent, showLine: false },
+        { label: 'damped cosine fit', data: fit, borderColor: accent2, backgroundColor: 'transparent', showLine: true, pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: commonOpts('pulse duration  τ  (ns)', 'P( |1⟩ )')
+  }));
+})();
+
+/* ============================================
+   4. T1 decay
+============================================ */
+(function() {
+  const T1 = 42;     // µs
+  const data = [];
+  const fit = [];
+  const n = noise(0.03, 33);
+  for (let t = 0; t <= 200; t += 3) {
+    const y = Math.exp(-t/T1);
+    fit.push({ x: t, y });
+    data.push({ x: t, y: Math.max(0, y + n()) });
+  }
+  _charts.push(new Chart(document.getElementById('ch-t1'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'P( |1⟩ )', data: data, backgroundColor: accent4, borderColor: accent4, showLine: false },
+        { label: 'exp(−τ/T₁), T₁ = 42 µs', data: fit, borderColor: accent2, backgroundColor: 'transparent', showLine: true, pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: commonOpts('delay  τ  (µs)', 'P( |1⟩ )')
+  }));
+})();
+
+/* ============================================
+   5. Ramsey fringes
+============================================ */
+(function() {
+  const T2s = 28;     // µs
+  const delta = 0.5;  // MHz
+  const data = [];
+  const fit = [];
+  const n = noise(0.03, 51);
+  for (let t = 0; t <= 60; t += 0.5) {
+    const y = 0.5 * (1 + Math.cos(2*Math.PI*delta*t) * Math.exp(-t/T2s));
+    fit.push({ x: t, y });
+    data.push({ x: t, y: y + n() });
+  }
+  _charts.push(new Chart(document.getElementById('ch-ramsey'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'P( |1⟩ )', data: data, backgroundColor: accent3, borderColor: accent3, showLine: false },
+        { label: 'damped cos · T₂* = 28 µs', data: fit, borderColor: accent2, backgroundColor: 'transparent', showLine: true, pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: commonOpts('free-evolution time  τ  (µs)', 'P( |1⟩ )')
+  }));
+})();
+
+/* ============================================
+   6. Hahn echo
+============================================ */
+(function() {
+  const T2e = 58;   // µs
+  const data = [];
+  const fit = [];
+  const n = noise(0.025, 71);
+  for (let t = 0; t <= 200; t += 3) {
+    const y = 0.5 * (1 + Math.exp(-t/T2e));
+    fit.push({ x: t, y });
+    data.push({ x: t, y: y + n() });
+  }
+  _charts.push(new Chart(document.getElementById('ch-echo'), {
+    type: 'scatter',
+    data: {
+      datasets: [
+        { label: 'P( |1⟩ )', data: data, backgroundColor: accent, borderColor: accent, showLine: false },
+        { label: 'exp(−τ/T₂^echo), 58 µs', data: fit, borderColor: accent2, backgroundColor: 'transparent', showLine: true, pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: commonOpts('total wait  τ  (µs)', 'P( |1⟩ )')
+  }));
+})();
+</script>
+
+</body>
+</html>
